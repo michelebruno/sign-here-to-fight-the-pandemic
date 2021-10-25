@@ -1,17 +1,31 @@
 import json
 import os.path
+from df2gspread import df2gspread as d2g
 
+import pandas
+from tqdm import tqdm
+from google_services import get_creds, get_service
 from dotenv import load_dotenv
 
 import requests
 
+# USEFUL LINKS
+# https://towardsdatascience.com/how-to-import-google-sheets-data-into-a-pandas-dataframe-using-googles-api-v4-2020-f50e84ea4530
+
 load_dotenv()
+
+SKIP_ALREADY_DOWNLOADED = True
+
+service = get_service()
 
 headers = {
     'Cookie': '_change_session=15196171a94c90b238a75969f6afb7ee; '
               '_change_lang=%7B%22locale%22%3A%22it-IT%22%2C%22countryCode%22%3A%22IT%22%7D; '
               '__cfruid=da7e15961cb1aaf81ca2c6db2c8eedb117acb6b3-1635174210 '
 }
+
+PETITIONS_SPREADSHEET_ID = '11tssKfqx7xpcU-bZdSVEvqLOZpnCOqw7Xm9VbHn_50c'
+CHANGE_RANGE_NAME = 'Change!A2:E'
 
 
 def get_petions_from(url):
@@ -28,16 +42,13 @@ def get_petions_from(url):
 
 
 def get_petitions_by_tag(topic):
-    d = get_petions_from(f'https://www.change.org/api-proxy/-/tags/{topic}/petitions?order=trending&limit=10')
+    d = get_petions_from(f'https://www.change.org/api-proxy/-/tags/{topic}/petitions?&limit=5')
     if 'err' in d:
         print(d)
         raise Exception(f"Sorry, {d['err']}")
 
     found = d['total_count']
-    return get_petions_from(f'https://www.change.org/api-proxy/-/tags/{topic}/petitions?order=trending&limit={found}')
-
-
-skip_already_downloaded = True
+    return get_petions_from(f'https://www.change.org/api-proxy/-/tags/{topic}/petitions?&limit={found}')
 
 
 def download_images_from_petitions(data, folder_name='unnamed'):
@@ -49,11 +60,11 @@ def download_images_from_petitions(data, folder_name='unnamed'):
 
     os.makedirs(os.path.dirname(folder_path), exist_ok=True)
 
-    for each in data['items']:
+    for each in tqdm(data['items']):
 
         filename = f"{folder_path}{each['petition']['id']}-{each['petition']['slug']}.jpg"
 
-        if skip_already_downloaded and os.path.isfile(filename):
+        if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
             # print(each['id'] + ' has already been downloaded')
             already_downloaded = already_downloaded + 1
             continue
@@ -79,7 +90,47 @@ def download_images_from_petitions(data, folder_name='unnamed'):
         f"With no images {no_pic_found} ")
 
 
+def save_petitions_to_sheets(data, tab_name):
+    df = []
+
+    for each in data['items']:
+        title = each['petition']['title']
+        slug = each['petition']['slug']
+        tags = each['petition']['tags']
+        df.append({
+            'title': title,
+            'slug': slug,
+            'link': f'https://www.change.org/p/{slug}',
+            'tags': ', '.join([x['slug'] for x in tags])
+        })
+
+    df = pandas.DataFrame(df)
+
+    service.spreadsheets().values().clear(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}").execute()
+    # service.spreadsheets().values().append(spreadsheetId=PETITIONS_SPREADSHEET_ID, body=df.columns.values,
+    #                                        range=tab_name)
+    service.spreadsheets().values().append(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A:A",
+                                           body={"values": [df.columns.tolist()]},
+                                           insertDataOption='INSERT_ROWS',
+                                           valueInputOption="USER_ENTERED"
+                                           ).execute()
+    service.spreadsheets().values().append(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A:A",
+                                           body={"values": df.values.tolist()},
+                                           insertDataOption='INSERT_ROWS',
+                                           valueInputOption="USER_ENTERED"
+                                           ).execute()
+
+
 if __name__ == '__main__':
-    tag = 'coronavirus-it-it'
-    petitions = get_petitions_by_tag(tag)
-    download_images_from_petitions(petitions, 'tags/' + tag)
+    tags = [
+        'diritti-civili',
+        'coronavirus-it-it'
+    ]
+    # tag = 'diritti-civili'
+    for tag in tags:
+        petitions = get_petitions_by_tag(tag)
+        if not len(petitions['items']):
+            continue
+        print(f"Total count : {petitions['total_count']}. Found: {len(petitions['items'])}")
+        save_petitions_to_sheets(petitions, tag)
+        # download_images_from_petitions(petitions, 'tags/' + tag)
