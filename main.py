@@ -1,45 +1,85 @@
-from bs4 import BeautifulSoup
-from urllib.parse import urlunsplit, urlencode
-import os
+import json
+import os.path
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
+from dotenv import load_dotenv
 
-from selenium.webdriver.common.by import By
+import requests
 
-service = webdriver.chrome.service.Service(os.path.abspath("chromedriver"))
-service.start()
+load_dotenv()
 
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-
-# path to the binary of Chrome Canary that we installed earlier
-chrome_options.binary_location = '/Applications/Google Chrome   Canary.app/Contents/MacOS/Google Chrome Canary'
-
-driver = webdriver.Remote(service.service_url, desired_capabilities=chrome_options.to_capabilities())
+headers = {
+    'Cookie': '_change_session=15196171a94c90b238a75969f6afb7ee; '
+              '_change_lang=%7B%22locale%22%3A%22it-IT%22%2C%22countryCode%22%3A%22IT%22%7D; '
+              '__cfruid=da7e15961cb1aaf81ca2c6db2c8eedb117acb6b3-1635174210 '
+}
 
 
-def get_soup_from(url, keyword, offset=0, lang='it'):
-    url_ = url + '?' + urlencode({
-        'q': keyword,
-        'offset': offset,
-        'lang': lang
-    })
+def get_petions_from(url):
+    """
 
-    print(url_)
-    driver.get(url_)
+    :param url: URL to fetch
+    :return: Object of the fetched data
+    :rtype object
+    """
+    res = requests.get(url, headers=headers)
+    res.encoding = 'utf-8'
 
-    return BeautifulSoup(driver.page_source, 'html.parser')
+    return json.loads(res.content)
 
 
-# Press the green button in the gutter to run the script.
+def get_petitions_by_tag(topic):
+    d = get_petions_from(f'https://www.change.org/api-proxy/-/tags/{topic}/petitions?order=trending&limit=10')
+    if 'err' in d:
+        print(d)
+        raise Exception(f"Sorry, {d['err']}")
+
+    found = d['total_count']
+    return get_petions_from(f'https://www.change.org/api-proxy/-/tags/{topic}/petitions?order=trending&limit={found}')
+
+
+skip_already_downloaded = True
+
+
+def download_images_from_petitions(data, folder_name='unnamed'):
+    download_count = 0
+    already_downloaded = 0
+    no_pic_found = 0
+
+    folder_path = f"{os.environ.get('ONEDRIVE_FOLDER_PATH')}/{folder_name}/"
+
+    os.makedirs(os.path.dirname(folder_path), exist_ok=True)
+
+    for each in data['items']:
+
+        filename = f"{folder_path}{each['petition']['id']}-{each['petition']['slug']}.jpg"
+
+        if skip_already_downloaded and os.path.isfile(filename):
+            # print(each['id'] + ' has already been downloaded')
+            already_downloaded = already_downloaded + 1
+            continue
+
+        if type(each['petition']['photo']) is dict:
+
+            img = requests.get(f"https:{each['petition']['photo']['sizes']['large']['url']}", headers=headers)
+
+            with open(filename, 'wb') as f:
+                download_count = download_count + 1
+                f.write(img.content)
+                # print(f"{each['id']} downloaded")
+        else:
+            print(f"{each['id']} has no pic")
+            no_pic_found = no_pic_found + 1
+            continue
+
+    print(
+        f"Petitions found {data['total_count']}. "
+        f"Total images {already_downloaded + download_count}. "
+        f"Downloaded {download_count}. "
+        f"Already downloaded: {already_downloaded}. "
+        f"With no images {no_pic_found} ")
+
+
 if __name__ == '__main__':
-    soup = get_soup_from('https://www.change.org/search', 'covid', )
-    print(soup.title.string)
-
-    for result in soup.find_all('div.search-result'):
-        print(result.find('h3'))
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    tag = 'coronavirus-it-it'
+    petitions = get_petitions_by_tag(tag)
+    download_images_from_petitions(petitions, 'tags/' + tag)
