@@ -1,0 +1,3 @@
+[submodule "change.org_scraper"]
+	path = change.org_scraper
+	url = git@github.com:lucadra/change.org_scraper.git
