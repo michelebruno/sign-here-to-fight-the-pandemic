@@ -62,7 +62,7 @@ def download_images_from_petitions(data, folder_name='unnamed'):
 
     for each in tqdm(data['items']):
 
-        filename = f"{folder_path}{each['petition']['id']}-{each['petition']['slug']}.jpg"
+        filename = f"{folder_path}{each['petition']['slug']}.jpg"
 
         if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
             # print(each['id'] + ' has already been downloaded')
@@ -97,6 +97,8 @@ def save_petitions_to_sheets(data, tab_name):
         title = each['petition']['title']
         slug = each['petition']['slug']
         tags = each['petition']['tags']
+
+        # TODO add image url, target, and so on...
         df.append({
             'title': title,
             'slug': slug,
@@ -131,6 +133,5 @@ if __name__ == '__main__':
         petitions = get_petitions_by_tag(tag)
         if not len(petitions['items']):
             continue
-        print(f"Total count : {petitions['total_count']}. Found: {len(petitions['items'])}")
         save_petitions_to_sheets(petitions, tag)
-        # download_images_from_petitions(petitions, 'tags/' + tag)
+        download_images_from_petitions(petitions, 'tags/' + tag)
