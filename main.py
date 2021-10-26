@@ -214,33 +214,24 @@ if __name__ == '__main__':
         # 'en-US',
         # 'en-GB'
     ]
-    # tag = 'diritti-civili'
-    # for lang in langs:
-    #     for keyword in keywords:
-    #         print(f"\033[94mLooking for keywork {keyword} in lang {lang}\033[0m")
-    #         petitions = get_petition_by_keyword(keyword, lang)
-    #         if not len(petitions['items']):
-    #             continue
-    #         print(f"Found {len(petitions['items'])} in keyword {keyword}")
-    #         store_petitions(petitions, key_term=keyword, found_through='keyword')
-    #         download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
 
-    keyword = 'covid'
-    lang='it-IT'
-    print(f"\033[94mLooking for keywork {keyword} in lang {lang}\033[0m")
-    petitions = get_petition_by_keyword(keyword, lang)
+    for lang in langs:
+        for keyword in keywords:
+            print(f"\033[94mLooking for keywork {keyword} in lang {lang}\033[0m")
+            petitions = get_petition_by_keyword(keyword, lang)
+            if not len(petitions['items']):
+                continue
+            print(f"Found {len(petitions['items'])} in keyword {keyword}")
+            store_petitions(petitions, key_term=keyword, found_through='keyword')
+            download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
 
-    print(f"Found {len(petitions['items'])} in keyword {keyword}")
-    store_petitions(petitions, key_term=keyword, found_through='keyword')
-    # download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
-
-    # for tag in tags:
-    #     print(f"\033[94mLooking for tag {tag}\033[0m")
-    #     petitions = get_petitions_by_tag(tag)
-    #     if not len(petitions['items']):
-    #         continue
-    #     print(f"Found {len(petitions['items'])} in tag {tag}")
-    #     save_petitions_to_sheets(petitions, tag)
-    #     # download_images_from_petitions(petitions, 'tags/' + tag)
+    for tag in tags:
+        print(f"\033[94mLooking for tag {tag}\033[0m")
+        petitions = get_petitions_by_tag(tag)
+        if not len(petitions['items']):
+            continue
+        print(f"Found {len(petitions['items'])} in tag {tag}")
+        save_petitions_to_sheets(petitions, tag)
+        download_images_from_petitions(petitions, 'tags/' + tag)
 
     save_petitions_to_sheets()
