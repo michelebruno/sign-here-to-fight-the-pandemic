@@ -223,7 +223,7 @@ if __name__ == '__main__':
                 continue
             print(f"Found {len(petitions['items'])} in keyword {keyword}")
             store_petitions(petitions, key_term=keyword, found_through='keyword')
-            download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
+            #download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
 
     for tag in tags:
         print(f"\033[94mLooking for tag {tag}\033[0m")
@@ -231,7 +231,7 @@ if __name__ == '__main__':
         if not len(petitions['items']):
             continue
         print(f"Found {len(petitions['items'])} in tag {tag}")
-        save_petitions_to_sheets(petitions, tag)
-        download_images_from_petitions(petitions, 'tags/' + tag)
+        store_petitions(petitions, key_term=tag)
+        #download_images_from_petitions(petitions, 'tags/' + tag)
 
     save_petitions_to_sheets()
