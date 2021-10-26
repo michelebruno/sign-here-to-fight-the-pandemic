@@ -125,13 +125,17 @@ def save_petitions_to_sheets(data, tab_name):
 
 if __name__ == '__main__':
     tags = [
-        'diritti-civili',
-        'coronavirus-it-it'
+        # 'diritti-civili',
+        'coronavirus-aid-en-us',
+        'sanidad',
+        'coronavirus-it-it',
+        'coronavirus-es-419'
     ]
     # tag = 'diritti-civili'
     for tag in tags:
+        print(f"\033[94mLooking for {tag}\033[0m")
         petitions = get_petitions_by_tag(tag)
         if not len(petitions['items']):
             continue
-        save_petitions_to_sheets(petitions, tag)
+        # save_petitions_to_sheets(petitions, tag)
         download_images_from_petitions(petitions, 'tags/' + tag)
