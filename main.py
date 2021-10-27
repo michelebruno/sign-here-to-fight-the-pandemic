@@ -68,7 +68,7 @@ def get_petions_from(url):
         res = http.get(f"{url}&limit={limit if limit < remaining else remaining}&offset={total_count - remaining}").json()
         items = items + res['items']
         remaining = remaining - res['count']
-
+        #print(res['items'])
     res['items'] = items
     res['count'] = len(items)
 
@@ -92,11 +92,17 @@ def download_images_from_petitions(data, folder_name='unnamed'):
 
     os.makedirs(os.path.dirname(folder_path), exist_ok=True)
 
-    print('Scaricoooooo')
+    print('Sto scaricando le immagini...')
 
     for each in tqdm(data['items']):
+        if "slug" not in each['petition']:
+            continue
 
-        filename = f"{folder_path}{each['petition']['slug']}.jpg"
+
+        #ho aggiunto [:140] perché win ha un limite sulla lunghezza del nome del file e del percorso del file.
+        #da documentazione dovrebbe essere 160, ma con win non si sa mai
+
+        filename = f"{folder_path}{each['petition']['slug'][:140]}.jpg"
 
         if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
             # print(each['id'] + ' has already been downloaded')
@@ -137,34 +143,54 @@ def store_petitions(
         petition = each['petition']
 
         if 'missingPetition' in petition:
-            print('Error missingPetition')
+            print('ERROR: PETITION NOT FOUND :(')
             continue
+
         title = petition['title']
         slug = petition['slug']
         user = petition['user']
         creator_name = petition['creator_name']
-        targets = petition['targets']
+        targets = petition['targeting_description']
         relevant_location = petition['relevant_location']
-
+        date = petition['created_at']
+        description = petition['description']
         tags_ = petition['tags']
+        is_victory = petition['is_victory'],
+        is_verified_victory = petition['is_verified_victory'],
+        sponsored = petition['sponsored_campaign'],
+        signatures = petition['total_signature_count'],
+        page_views = petition['total_page_views'],
+        share_count = petition['total_share_count'],
+
 
         row = {
+            'date': date,
+            'title': title,
+            'signatures': signatures,
+            'page_views': page_views,
             'origin': found_through,
             'key_term': key_term,
             'country': relevant_location['country_code'],
             'id': petition['id'],
-            'title': title,
             'slug': slug,
             'link': f'https://www.change.org/p/{quote(slug)}',
             'tags': ', '.join([x['slug'] for x in tags_]),
             'user_id': user['id'],
             'user': creator_name,
+            'targets': targets,
+            'description': description,
+            'victory' : is_victory,
+            'verified_victory' : is_verified_victory,
+            'sponsored' : sponsored,
+            'share_count': share_count
         }
 
         if 'original_locale' in petition:
             row['original_locale'] = petition['original_locale']
 
-        # TODO add image url, target, and so on...
+        # TODO add share by platform
+            #TODO pars secunda: controlla che le info siano effettivamente diverse fra json delle keyword e json dei tag
+            #dovremmo star parlando di ['petitions']['activity'][feature da pescare]
         stored_petitions.append(row)
 
 
@@ -200,30 +226,38 @@ def save_petitions_to_sheets(
 if __name__ == '__main__':
     tags = [
         # 'diritti-civili',
-        'coronavirus-aid-en-us',
-        'sanidad',
+        'coronavirus-epidemic-en-us',
+        #'sanidad',
         'coronavirus-it-it',
-        'coronavirus-es-419'
+        #'coronavirus-es-419'
     ]
 
     keywords = [
         'covid',
+        #'covid-19',
+        'coronavirus',
+        #'no vax',
+        #'vaccine',
+        #'vaccino',
+        #'lockdown',
+        #'greenpass'
     ]
+
     langs = [
         'it-IT',
-        # 'en-US',
-        # 'en-GB'
+        'en-US',
+        #'en-GB'
     ]
 
     for lang in langs:
         for keyword in keywords:
-            print(f"\033[94mLooking for keywork {keyword} in lang {lang}\033[0m")
+            print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
             petitions = get_petition_by_keyword(keyword, lang)
             if not len(petitions['items']):
                 continue
             print(f"Found {len(petitions['items'])} in keyword {keyword}")
             store_petitions(petitions, key_term=keyword, found_through='keyword')
-            #download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
+            download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
 
     for tag in tags:
         print(f"\033[94mLooking for tag {tag}\033[0m")
@@ -232,6 +266,6 @@ if __name__ == '__main__':
             continue
         print(f"Found {len(petitions['items'])} in tag {tag}")
         store_petitions(petitions, key_term=tag)
-        #download_images_from_petitions(petitions, 'tags/' + tag)
+        download_images_from_petitions(petitions, 'tags/' + tag)
 
     save_petitions_to_sheets()
