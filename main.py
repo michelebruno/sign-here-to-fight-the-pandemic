@@ -1,5 +1,6 @@
 import json
 import os.path
+import pickle
 from pprint import pprint
 
 import pandas
@@ -77,11 +78,30 @@ def get_petions_from(url):
 
 
 def get_petition_by_keyword(keyword, lang='it-IT'):
-    return get_petions_from(f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
+    pkl_path = os.path.join('json', 'keywords', lang, f"{keyword}.json")
+    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
+    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
+        with open(pkl_path, 'r') as pkl:
+            print('Got from cache')
+            return json.load(pkl)
+    with open(pkl_path, 'w') as pkl:
+        res = get_petions_from(f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
+        json.dump(res, pkl)
+        return res
 
 
 def get_petitions_by_tag(tag):
-    return get_petions_from(f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
+    pkl_path = os.path.join('json', 'tags', f"{tag}.json")
+    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
+    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
+        with open(pkl_path, 'r') as pkl:
+            print('Got from cache')
+            return json.load(pkl)
+    with open(pkl_path, 'w') as pkl:
+        res = get_petions_from(f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
+        json.dump(res, pkl)
+        print("Saved in cache.")
+        return res
 
 
 def download_images_from_petitions(data, folder_name='unnamed'):
@@ -269,7 +289,7 @@ if __name__ == '__main__':
             continue
         print(f"Found {len(petitions['items'])} in tag {tag}")
         store_petitions(petitions, key_term=tag)
-        download_images_from_petitions(petitions, os.path.join('tags', tag))
+        # download_images_from_petitions(petitions, os.path.join('tags', tag))
 
     for lang in langs:
         for keyword in keywords:
@@ -279,6 +299,6 @@ if __name__ == '__main__':
                 continue
             print(f"Found {len(petitions['items'])} in keyword {keyword}")
             store_petitions(petitions, key_term=keyword, found_through='keyword')
-            download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
+            # download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
 
     save_petitions_to_sheets()
