@@ -207,7 +207,7 @@ def store_petitions(
         recruit_copylink = petition['activity']['recruit.copylink.count'],
         recruit_email = petition['activity']['recruit.email.count'],
         recruit_facebook = petition['activity']['recruit.facebook.count'],
-        recruit_facebook_messenger = petition['activity']['recruit.facebook_messenger.count'],
+        recruit_facebook_messenger = int(petition['activity']['recruit.facebook_messenger_mobile.count'])+int(petition['activity']['recruit.facebook_messenger_web.count']),
         recruit_sms = petition['activity']['recruit.sms.count'],
         recruit_twitter = petition['activity']['recruit.twitter.count'],
         recruit_whatsapp = petition['activity']['recruit.whatsapp.count'],
