@@ -217,12 +217,9 @@ def store_petitions(
             'title': title,
             'signatures': signatures,
             'page_views': page_views,
-            'origin': found_through,
-            'key_term': key_term,
+            #'origin': found_through,
+            #'key_term': key_term,
             'country': relevant_location['country_code'],
-            'id': petition['id'],
-            'slug': slug,
-            'link': f'https://www.change.org/p/{quote(slug)}',
             'tags': ', '.join([x['slug'] for x in tags_]),
             'user_id': user['id'],
             'user': creator_name,
@@ -232,6 +229,7 @@ def store_petitions(
             'verified_victory': is_verified_victory,
             'sponsored': sponsored,
             'share_count_total': share_count,
+            'recruit': recruit,
             'share_copylink': share_copylink,
             'recruit_copylink': recruit_copylink,
             'share_email': share_email,
@@ -246,7 +244,10 @@ def store_petitions(
             'recruit_twitter': recruit_twitter,
             'share_whatsapp': share_whatsapp,
             'recruit_whatsapp': recruit_whatsapp,
-            'img_url': img_url
+            'img_url': img_url,
+            'id': petition['id'],
+            'slug': slug,
+            'link': f'https://www.change.org/p/{quote(slug)}'
         }
 
         if 'original_locale' in petition:
@@ -304,9 +305,9 @@ if __name__ == '__main__':
     ]
 
     keywords = [
-        'covid',
+        #'covid',
         # 'covid-19',
-        'coronavirus',
+        #'coronavirus',
         # 'no vax',
         # 'vaccine',
         # 'vaccino',
@@ -331,16 +332,16 @@ if __name__ == '__main__':
         if os.environ.get('DOWNLOAD_IMAGES', False):
             download_images_from_petitions(petitions, os.path.join('tags', tag))
 
-    for lang in langs:
-        for keyword in keywords:
-            print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
-            petitions = get_petition_by_keyword(keyword, lang)
-            if not len(petitions['items']):
-                continue
-            print(f"Found {len(petitions['items'])} in keyword {keyword}")
-            store_petitions(petitions, key_term=keyword, found_through='keyword')
-
-            if os.environ.get('DOWNLOAD_IMAGES', False):
-                download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
+    # for lang in langs:
+    #     for keyword in keywords:
+    #         print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
+    #         petitions = get_petition_by_keyword(keyword, lang)
+    #         if not len(petitions['items']):
+    #             continue
+    #         print(f"Found {len(petitions['items'])} in keyword {keyword}")
+    #         store_petitions(petitions, key_term=keyword, found_through='keyword')
+    #
+    #         if os.environ.get('DOWNLOAD_IMAGES', False):
+    #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
 
     save_petitions_to_sheets()
