@@ -95,20 +95,25 @@ def download_images_from_petitions(data, folder_name='unnamed'):
     print('Sto scaricando le immagini...')
 
     for each in tqdm(data['items']):
+
+        #Esiste almeno una petizione per cui "slug" non è un key valido nel JSON
+        #Dio solo sa come
+
         if "slug" not in each['petition']:
             continue
-
 
         #ho aggiunto [:140] perché win ha un limite sulla lunghezza del nome del file e del percorso del file.
         #da documentazione dovrebbe essere 160, ma con win non si sa mai
 
         filename = f"{folder_path}{each['petition']['slug'][:140]}.jpg"
 
+        #Controlla se l'immagine è già stata scaricata
         if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
             # print(each['id'] + ' has already been downloaded')
             already_downloaded = already_downloaded + 1
             continue
 
+        #Prende l'url dell'immagine alla risoluzione più alta e la scarica
         if type(each['petition']['photo']) is dict:
             img = http.get(f"https:{each['petition']['photo']['sizes']['large']['url']}")
 
@@ -146,6 +151,7 @@ def store_petitions(
             print('ERROR: PETITION NOT FOUND :(')
             continue
 
+        #TODO questo potenzialmente tutto in row?
         title = petition['title']
         slug = petition['slug']
         user = petition['user']
@@ -161,7 +167,6 @@ def store_petitions(
         signatures = petition['total_signature_count'],
         page_views = petition['total_page_views'],
         share_count = petition['total_share_count'],
-
 
         row = {
             'date': date,
