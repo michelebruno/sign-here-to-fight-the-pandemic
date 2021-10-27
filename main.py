@@ -184,9 +184,9 @@ def store_petitions(
             'user': creator_name,
             'targets': targets,
             'description': description,
-            'victory' : is_victory,
-            'verified_victory' : is_verified_victory,
-            'sponsored' : sponsored,
+            'victory': is_victory,
+            'verified_victory': is_verified_victory,
+            'sponsored': sponsored,
             'share_count': share_count
         }
 
@@ -230,10 +230,17 @@ def save_petitions_to_sheets(
 
 if __name__ == '__main__':
     tags = [
-        # 'diritti-civili',
-        'coronavirus-epidemic-en-us',
-        #'sanidad',
+        #IT-IT
         'coronavirus-it-it',
+        'giustizia-economica',
+        'salute',
+        #EN-US
+        'coronavirus-epidemic-en-us',
+        'coronavirus-aid-en-us',
+        'economic-justice-10',
+        'health-en-us'
+        #ES
+        #'sanidad',
         #'coronavirus-es-419'
     ]
 
@@ -254,15 +261,15 @@ if __name__ == '__main__':
         #'en-GB'
     ]
 
-    for lang in langs:
-        for keyword in keywords:
-            print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
-            petitions = get_petition_by_keyword(keyword, lang)
-            if not len(petitions['items']):
-                continue
-            print(f"Found {len(petitions['items'])} in keyword {keyword}")
-            store_petitions(petitions, key_term=keyword, found_through='keyword')
-            download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
+    #for lang in langs:
+    #    for keyword in keywords:
+    #        print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
+    #        petitions = get_petition_by_keyword(keyword, lang)
+    #        if not len(petitions['items']):
+    #            continue
+    #        print(f"Found {len(petitions['items'])} in keyword {keyword}")
+    #        store_petitions(petitions, key_term=keyword, found_through='keyword')
+    #        download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
 
     for tag in tags:
         print(f"\033[94mLooking for tag {tag}\033[0m")
