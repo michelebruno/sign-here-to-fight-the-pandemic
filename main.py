@@ -261,16 +261,6 @@ if __name__ == '__main__':
         #'en-GB'
     ]
 
-    #for lang in langs:
-    #    for keyword in keywords:
-    #        print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
-    #        petitions = get_petition_by_keyword(keyword, lang)
-    #        if not len(petitions['items']):
-    #            continue
-    #        print(f"Found {len(petitions['items'])} in keyword {keyword}")
-    #        store_petitions(petitions, key_term=keyword, found_through='keyword')
-    #        download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
-
     for tag in tags:
         print(f"\033[94mLooking for tag {tag}\033[0m")
         petitions = get_petitions_by_tag(tag)
@@ -279,5 +269,16 @@ if __name__ == '__main__':
         print(f"Found {len(petitions['items'])} in tag {tag}")
         store_petitions(petitions, key_term=tag)
         download_images_from_petitions(petitions, 'tags/' + tag)
+
+    for lang in langs:
+        for keyword in keywords:
+            print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
+            petitions = get_petition_by_keyword(keyword, lang)
+            if not len(petitions['items']):
+                continue
+            print(f"Found {len(petitions['items'])} in keyword {keyword}")
+            store_petitions(petitions, key_term=keyword, found_through='keyword')
+            #download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
+
 
     save_petitions_to_sheets()
