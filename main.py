@@ -289,7 +289,9 @@ if __name__ == '__main__':
             continue
         print(f"Found {len(petitions['items'])} in tag {tag}")
         store_petitions(petitions, key_term=tag)
-        # download_images_from_petitions(petitions, os.path.join('tags', tag))
+
+        if os.environ.get('DOWNLOAD_IMAGES', False):
+            download_images_from_petitions(petitions, os.path.join('tags', tag))
 
     for lang in langs:
         for keyword in keywords:
@@ -299,6 +301,8 @@ if __name__ == '__main__':
                 continue
             print(f"Found {len(petitions['items'])} in keyword {keyword}")
             store_petitions(petitions, key_term=keyword, found_through='keyword')
-            # download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
+
+            if os.environ.get('DOWNLOAD_IMAGES', False):
+                download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
 
     save_petitions_to_sheets()
