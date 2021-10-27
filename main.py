@@ -62,13 +62,14 @@ def get_petions_from(url):
     remaining = total_count - 1
 
     res = {}
+    with tqdm(total=total_count) as pbar:
+        while remaining > 0:
+            res = http.get(
+                f"{url}&limit={limit if limit < remaining else remaining}&offset={total_count - remaining}").json()
+            items = items + res['items']
+            remaining = remaining - res['count']
+            pbar.update(total_count - remaining)
 
-    while remaining > 0:
-        print("Remaining {0}".format(remaining))
-        res = http.get(f"{url}&limit={limit if limit < remaining else remaining}&offset={total_count - remaining}").json()
-        items = items + res['items']
-        remaining = remaining - res['count']
-        #print(res['items'])
     res['items'] = items
     res['count'] = len(items)
 
@@ -88,7 +89,7 @@ def download_images_from_petitions(data, folder_name='unnamed'):
     already_downloaded = 0
     no_pic_found = 0
 
-    folder_path = f"{os.environ.get('ONEDRIVE_FOLDER_PATH')}/{folder_name}/"
+    folder_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), folder_name)
 
     os.makedirs(os.path.dirname(folder_path), exist_ok=True)
 
@@ -96,24 +97,24 @@ def download_images_from_petitions(data, folder_name='unnamed'):
 
     for each in tqdm(data['items']):
 
-        #Esiste almeno una petizione per cui "slug" non è un key valido nel JSON
-        #Dio solo sa come
+        # Esiste almeno una petizione per cui "slug" non è un key valido nel JSON
+        # Dio solo sa come
 
         if "slug" not in each['petition']:
             continue
 
-        #ho aggiunto [:140] perché win ha un limite sulla lunghezza del nome del file e del percorso del file.
-        #da documentazione dovrebbe essere 160, ma con win non si sa mai
+        # ho aggiunto [:140] perché win ha un limite sulla lunghezza del nome del file e del percorso del file.
+        # da documentazione dovrebbe essere 160, ma con win non si sa mai
 
-        filename = f"{folder_path}{each['petition']['slug'][:140]}.jpg"
+        filename = os.path.join(folder_path, f"{each['petition']['slug'][:140]}.jpg", )
 
-        #Controlla se l'immagine è già stata scaricata
+        # Controlla se l'immagine è già stata scaricata
         if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
             # print(each['id'] + ' has already been downloaded')
             already_downloaded = already_downloaded + 1
             continue
 
-        #Prende l'url dell'immagine alla risoluzione più alta e la scarica
+        # Prende l'url dell'immagine alla risoluzione più alta e la scarica
         if type(each['petition']['photo']) is dict:
             img = http.get(f"https:{each['petition']['photo']['sizes']['large']['url']}")
 
@@ -151,7 +152,7 @@ def store_petitions(
             print('ERROR: PETITION NOT FOUND :(')
             continue
 
-        #TODO questo potenzialmente tutto in row?
+        # TODO questo potenzialmente tutto in row?
         title = petition['title']
         slug = petition['slug']
         user = petition['user']
@@ -194,8 +195,8 @@ def store_petitions(
             row['original_locale'] = petition['original_locale']
 
         # TODO add share by platform
-            #TODO pars secunda: controlla che le info siano effettivamente diverse fra json delle keyword e json dei tag
-            #dovremmo star parlando di ['petitions']['activity'][feature da pescare]
+        # TODO pars secunda: controlla che le info siano effettivamente diverse fra json delle keyword e json dei tag
+        # dovremmo star parlando di ['petitions']['activity'][feature da pescare]
         stored_petitions.append(row)
 
 
@@ -230,35 +231,35 @@ def save_petitions_to_sheets(
 
 if __name__ == '__main__':
     tags = [
-        #IT-IT
+        # IT-IT
         'coronavirus-it-it',
         'giustizia-economica',
         'salute',
-        #EN-US
+        # EN-US
         'coronavirus-epidemic-en-us',
         'coronavirus-aid-en-us',
         'economic-justice-10',
         'health-en-us'
-        #ES
-        #'sanidad',
-        #'coronavirus-es-419'
+        # ES
+        # 'sanidad',
+        # 'coronavirus-es-419'
     ]
 
     keywords = [
         'covid',
-        #'covid-19',
+        # 'covid-19',
         'coronavirus',
-        #'no vax',
-        #'vaccine',
-        #'vaccino',
-        #'lockdown',
-        #'greenpass'
+        # 'no vax',
+        # 'vaccine',
+        # 'vaccino',
+        # 'lockdown',
+        # 'greenpass'
     ]
 
     langs = [
         'it-IT',
         'en-US',
-        #'en-GB'
+        # 'en-GB'
     ]
 
     for tag in tags:
@@ -268,7 +269,7 @@ if __name__ == '__main__':
             continue
         print(f"Found {len(petitions['items'])} in tag {tag}")
         store_petitions(petitions, key_term=tag)
-        download_images_from_petitions(petitions, 'tags/' + tag)
+        download_images_from_petitions(petitions, os.path.join('tags', tag))
 
     for lang in langs:
         for keyword in keywords:
@@ -278,7 +279,6 @@ if __name__ == '__main__':
                 continue
             print(f"Found {len(petitions['items'])} in keyword {keyword}")
             store_petitions(petitions, key_term=keyword, found_through='keyword')
-            #download_images_from_petitions(petitions, f"keywords/{lang}/{keyword}")
-
+            download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
 
     save_petitions_to_sheets()
