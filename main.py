@@ -168,6 +168,11 @@ def store_petitions(
     for each in data['items']:
         petition = each['petition']
 
+        #A quanto pare non era la questione del -1, se provi a lanciare la ricerca per keyword con "covid" su en-US
+        #ne ha tipo 5-6 missing quindi penso sia sempre la questione del limit > remaining
+        #troppi pochi neuroni a disposizione per risolvere ora. Anche perche honestly 5 su 67279 capita, amen, ciao.
+        #P.S. ricercando per tag pare non succeda
+
         if 'missingPetition' in petition:
             print('ERROR: PETITION NOT FOUND :(')
             continue
@@ -188,6 +193,24 @@ def store_petitions(
         signatures = petition['total_signature_count'],
         page_views = petition['total_page_views'],
         share_count = petition['total_share_count'],
+        img_url = petition['photo']['sizes']['large']['url'],
+
+        share_copylink = petition['activity']['share.copylink.count'],
+        share_email = petition['activity']['share.email.count'],
+        share_facebook = petition['activity']['share.facebook.count'],
+        share_facebook_messenger = petition['activity']['share.facebook_messenger.count'],
+        share_sms = petition['activity']['share.sms.count'],
+        share_twitter = petition['activity']['share.twitter.count'],
+        share_whatsapp = petition['activity']['share.whatsapp.count'],
+
+        recruit = petition['activity']['recruit..count'],
+        recruit_copylink = petition['activity']['recruit.copylink.count'],
+        recruit_email = petition['activity']['recruit.email.count'],
+        recruit_facebook = petition['activity']['recruit.facebook.count'],
+        recruit_facebook_messenger = petition['activity']['recruit.facebook_messenger.count'],
+        recruit_sms = petition['activity']['recruit.sms.count'],
+        recruit_twitter = petition['activity']['recruit.twitter.count'],
+        recruit_whatsapp = petition['activity']['recruit.whatsapp.count'],
 
         row = {
             'date': date,
@@ -208,7 +231,22 @@ def store_petitions(
             'victory': is_victory,
             'verified_victory': is_verified_victory,
             'sponsored': sponsored,
-            'share_count': share_count
+            'share_count_total': share_count,
+            'share_copylink': share_copylink,
+            'recruit_copylink': recruit_copylink,
+            'share_email': share_email,
+            'recruit_email': recruit_email,
+            'share_facebook': share_facebook,
+            'recruit_facebook': recruit_facebook,
+            'share_facebook_messenger': share_facebook_messenger,
+            'recruit_facebook_messenger': recruit_facebook_messenger,
+            'share_sms': share_sms,
+            'recruit_sms': recruit_sms,
+            'share_twitter': share_twitter,
+            'recruit_twitter': recruit_twitter,
+            'share_whatsapp': share_whatsapp,
+            'recruit_whatsapp': recruit_whatsapp,
+            'img_url': img_url
         }
 
         if 'original_locale' in petition:
