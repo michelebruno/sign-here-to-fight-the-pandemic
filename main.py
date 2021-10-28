@@ -1,24 +1,22 @@
 import json
 import os.path
-import pickle
-from pprint import pprint
+from utils.http import http
 
 import pandas
 from tqdm import tqdm
-from google_services import get_creds, get_service
+from utils.google_services import get_service
 from dotenv import load_dotenv
 from urllib.parse import quote
 
-import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-
 import re
+
 CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
 
+
 def cleanhtml(raw_html):
-  cleantext = re.sub(CLEANR, '', raw_html)
-  return cleantext
+    cleantext = re.sub(CLEANR, '', raw_html)
+    return cleantext
+
 
 # USEFUL LINKS
 # https://towardsdatascience.com/how-to-import-google-sheets-data-into-a-pandas-dataframe-using-googles-api-v4-2020-f50e84ea4530
@@ -29,19 +27,7 @@ SKIP_ALREADY_DOWNLOADED = True
 
 service = get_service()
 
-retry_strategy = Retry(
-    total=5,
-    status_forcelist=[429, 500, 502, 503, 504],
-)
-adapter = HTTPAdapter(max_retries=retry_strategy, )
-
-http = requests.Session()
-
-# http.headers.update(headers)
-
-http.mount("https://", adapter)
-
-PETITIONS_SPREADSHEET_ID = '11tssKfqx7xpcU-bZdSVEvqLOZpnCOqw7Xm9VbHn_50c'
+PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
 
 
 def get_petions_from(url):
@@ -175,16 +161,16 @@ def store_petitions(
     for each in data['items']:
         petition = each['petition']
 
-        #A quanto pare non era la questione del -1, se provi a lanciare la ricerca per keyword con "covid" su en-US
-        #ne ha tipo 5-6 missing quindi penso sia sempre la questione del limit > remaining
-        #troppi pochi neuroni a disposizione per risolvere ora. Anche perche honestly 5 su 67279 capita, amen, ciao.
-        #P.S. ricercando per tag pare non succeda
+        # A quanto pare non era la questione del -1, se provi a lanciare la ricerca per keyword con "covid" su en-US
+        # ne ha tipo 5-6 missing quindi penso sia sempre la questione del limit > remaining
+        # troppi pochi neuroni a disposizione per risolvere ora. Anche perche honestly 5 su 67279 capita, amen, ciao.
+        # P.S. ricercando per tag pare non succeda
 
         if 'missingPetition' in petition:
             print('ERROR: PETITION NOT FOUND :(')
             continue
 
-        #pprint(petition['activity'])
+        # pprint(petition['activity'])
 
         # TODO questo potenzialmente tutto in row?
         title = petition['title']
@@ -208,7 +194,7 @@ def store_petitions(
         except TypeError:
             img_url = 'n/a'
 
-        #Array con le variabili che inserisco nelle colonne
+        # Array con le variabili che inserisco nelle colonne
         # cols_lst = {
         #     'share_copylink': 0,
         #     'share_email' : 0,
@@ -241,17 +227,17 @@ def store_petitions(
         #     'recruit.whatsapp.count'
         # ]
 
-        #Confeitor Dennis Ritchie Omnipotenti
-        #et vobis, fratres
-        #quia peccavi nimis,
-        #for-loop, digitatione,
-        #KeyError et ripetitione,
-        #mea culpa, mea culpa,
-        #mea maxima culpa,
-        #Ideo precor beatam Ada Lovelace semper virginem
-        #omnes coders et hackers
-        #et vobis fratres
-        #orare pro me ab Guido van Rossum Deum Nostrum
+        # Confeitor Dennis Ritchie Omnipotenti
+        # et vobis, fratres
+        # quia peccavi nimis,
+        # for-loop, digitatione,
+        # KeyError et ripetitione,
+        # mea culpa, mea culpa,
+        # mea maxima culpa,
+        # Ideo precor beatam Ada Lovelace semper virginem
+        # omnes coders et hackers
+        # et vobis fratres
+        # orare pro me ab Guido van Rossum Deum Nostrum
 
         ##SHARE##
         try:
@@ -286,7 +272,8 @@ def store_petitions(
 
         ##CONVERSION##
         try:
-            recruit = petition['activity']['recruit..count'] #Questo non so a cosa si riferisca onestamente, immagino le firme da sito e basta?
+            recruit = petition['activity'][
+                'recruit..count']  # Questo non so a cosa si riferisca onestamente, immagino le firme da sito e basta?
         except KeyError:
             recruit = ''
 
@@ -325,8 +312,8 @@ def store_petitions(
             'title': title,
             'signatures': signatures,
             'page_views': page_views,
-            #'origin': found_through,
-            #'key_term': key_term,
+            # 'origin': found_through,
+            # 'key_term': key_term,
             'country': relevant_location['country_code'],
             'tags': ', '.join([x['slug'] for x in tags_]),
             'user_id': user['id'],
@@ -344,8 +331,8 @@ def store_petitions(
             'recruit_email': recruit_email,
             'share_facebook': share_facebook,
             'recruit_facebook': recruit_facebook,
-            #'share_facebook_messenger': share_facebook_messenger,
-            #'recruit_facebook_messenger': recruit_facebook_messenger,
+            # 'share_facebook_messenger': share_facebook_messenger,
+            # 'recruit_facebook_messenger': recruit_facebook_messenger,
             'share_sms': share_sms,
             'recruit_sms': recruit_sms,
             'share_twitter': share_twitter,
@@ -397,8 +384,6 @@ def save_petitions_to_sheets(
                                            ).execute()
 
 
-
-
 if __name__ == '__main__':
     tags = [
         # IT-IT
@@ -416,9 +401,9 @@ if __name__ == '__main__':
     ]
 
     keywords = [
-        #'covid',
+        # 'covid',
         # 'covid-19',
-        #'coronavirus',
+        # 'coronavirus',
         # 'no vax',
         # 'vaccine',
         # 'vaccino',

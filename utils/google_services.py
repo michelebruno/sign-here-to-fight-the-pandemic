@@ -36,3 +36,6 @@ def get_creds():
 
 def get_service():
     return build('sheets', 'v4', credentials=get_creds())
+
+
+service = get_service()
