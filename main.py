@@ -308,11 +308,11 @@ def store_petitions(
             recruit_whatsapp = ''
 
         row = {
+            'origin': key_term,
             'date': date,
             'title': title,
             'signatures': signatures,
             'page_views': page_views,
-            # 'origin': found_through,
             # 'key_term': key_term,
             'country': relevant_location['country_code'],
             'tags': ', '.join([x['slug'] for x in tags_]),
@@ -363,6 +363,8 @@ def save_petitions_to_sheets(
 
     df = pandas.DataFrame(stored_petitions)
 
+    #df = df.drop_duplicates(subset=['id'])
+
     if not sheet_cleared:
         # with open('./petition-example.json', 'w') as outfile:
         #     json.dump(data['items'][0], outfile, indent=4)
@@ -388,13 +390,13 @@ if __name__ == '__main__':
     tags = [
         # IT-IT
         'coronavirus-it-it',
-        'giustizia-economica',
-        'salute',
+        # 'giustizia-economica',
+        # 'salute',
         # EN-US
-        'coronavirus-epidemic-en-us',
-        'coronavirus-aid-en-us',
-        'economic-justice-10',
-        'health-en-us'
+        # 'coronavirus-epidemic-en-us',
+        # 'coronavirus-aid-en-us',
+        # 'economic-justice-10',
+        # 'health-en-us'
         # ES
         # 'sanidad',
         # 'coronavirus-es-419'

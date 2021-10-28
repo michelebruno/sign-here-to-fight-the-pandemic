@@ -32,6 +32,8 @@ def store_related_tags(tags, query_term):
 
         scraped_data.append(row)
 
+    print(f"Scraped {len(tags)} from {query_term}")
+
 
 def save_to_sheets():
     df = pandas.DataFrame(scraped_data)
@@ -53,11 +55,22 @@ def save_to_sheets():
                                            body={"values": df.values.tolist()},
                                            valueInputOption="USER_ENTERED"
                                            ).execute()
+    print("Saved to sheets.")
 
 
 if __name__ == '__main__':
     tags = [
-        'corona-virus-it-it'
+        'corona-virus-it-it',
+        'coronavirus-de-de',
+        'coronavirüs-tr-tr',
+        'coronavirus-es-es',
+        'коронавирус-ru-ru',
+        # Added after first search
+        'covid-19-tr-tr',
+        'covid-19-es-es',
+        'covid-19-fr-fr',
+
+
     ]
 
     for tag in tags:
