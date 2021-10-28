@@ -13,6 +13,13 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+import re
+CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
+
+def cleanhtml(raw_html):
+  cleantext = re.sub(CLEANR, '', raw_html)
+  return cleantext
+
 # USEFUL LINKS
 # https://towardsdatascience.com/how-to-import-google-sheets-data-into-a-pandas-dataframe-using-googles-api-v4-2020-f50e84ea4530
 
@@ -177,6 +184,8 @@ def store_petitions(
             print('ERROR: PETITION NOT FOUND :(')
             continue
 
+        #pprint(petition['activity'])
+
         # TODO questo potenzialmente tutto in row?
         title = petition['title']
         slug = petition['slug']
@@ -184,33 +193,132 @@ def store_petitions(
         creator_name = petition['creator_name']
         targets = petition['targeting_description']
         relevant_location = petition['relevant_location']
-        date = petition['created_at']
-        description = petition['description']
+        date = petition['created_at'][:10]
+        description = cleanhtml(petition['description'])
         tags_ = petition['tags']
-        is_victory = petition['is_victory'],
-        is_verified_victory = petition['is_verified_victory'],
-        sponsored = petition['sponsored_campaign'],
-        signatures = petition['total_signature_count'],
-        page_views = petition['total_page_views'],
-        share_count = petition['total_share_count'],
-        img_url = petition['photo']['sizes']['large']['url'],
+        is_victory = petition['is_victory']
+        is_verified_victory = petition['is_verified_victory']
+        sponsored = petition['sponsored_campaign']
+        signatures = petition['total_signature_count']
+        page_views = petition['total_page_views']
+        share_count = petition['total_share_count']
 
-        share_copylink = petition['activity']['share.copylink.count'],
-        share_email = petition['activity']['share.email.count'],
-        share_facebook = petition['activity']['share.facebook.count'],
-        share_facebook_messenger = petition['activity']['share.facebook_messenger.count'],
-        share_sms = petition['activity']['share.sms.count'],
-        share_twitter = petition['activity']['share.twitter.count'],
-        share_whatsapp = petition['activity']['share.whatsapp.count'],
+        try:
+            img_url = str(f"https:{petition['photo']['sizes']['large']['url']}")
+        except TypeError:
+            img_url = 'n/a'
 
-        recruit = petition['activity']['recruit..count'],
-        recruit_copylink = petition['activity']['recruit.copylink.count'],
-        recruit_email = petition['activity']['recruit.email.count'],
-        recruit_facebook = petition['activity']['recruit.facebook.count'],
-        recruit_facebook_messenger = int(petition['activity']['recruit.facebook_messenger_mobile.count'])+int(petition['activity']['recruit.facebook_messenger_web.count']),
-        recruit_sms = petition['activity']['recruit.sms.count'],
-        recruit_twitter = petition['activity']['recruit.twitter.count'],
-        recruit_whatsapp = petition['activity']['recruit.whatsapp.count'],
+        #Array con le variabili che inserisco nelle colonne
+        # cols_lst = {
+        #     'share_copylink': 0,
+        #     'share_email' : 0,
+        #     share_facebook,
+        #     share_sms,
+        #     share_twitter,
+        #     share_whatsapp,
+        #     recruit,
+        #     recruit_copylink,
+        #     recruit_email,
+        #     recruit_facebook,
+        #     recruit_sms,
+        #     recruit_twitter,
+        #     recruit_whatsapp
+        # }
+        #
+        # keys_lst = [
+        #     'share.copylink.count',
+        #     'share.email.count',
+        #     'share.facebook.count',
+        #     'share.sms.count',
+        #     'share.twitter.count',
+        #     'share.whatsapp.count',
+        #     'recruit..count',
+        #     'recruit.copylink.count',
+        #     'recruit.email.count',
+        #     'recruit.facebook.count',
+        #     'recruit.sms.count',
+        #     'recruit.twitter.count',
+        #     'recruit.whatsapp.count'
+        # ]
+
+        #Confeitor Dennis Ritchie Omnipotenti
+        #et vobis, fratres
+        #quia peccavi nimis,
+        #for-loop, digitatione,
+        #KeyError et ripetitione,
+        #mea culpa, mea culpa,
+        #mea maxima culpa,
+        #Ideo precor beatam Ada Lovelace semper virginem
+        #omnes coders et hackers
+        #et vobis fratres
+        #orare pro me ab Guido van Rossum Deum Nostrum
+
+        ##SHARE##
+        try:
+            share_copylink = petition['activity']['share.copylink.count']
+        except KeyError:
+            share_copylink = ''
+
+        try:
+            share_email = petition['activity']['share.email.count']
+        except KeyError:
+            share_email = ''
+
+        try:
+            share_facebook = petition['activity']['share.facebook.count']
+        except KeyError:
+            share_facebook = ''
+
+        try:
+            share_sms = petition['activity']['share.sms.count']
+        except KeyError:
+            share_sms = ''
+
+        try:
+            share_twitter = petition['activity']['share.twitter.count']
+        except KeyError:
+            share_twitter = ''
+
+        try:
+            share_whatsapp = petition['activity']['share.whatsapp.count']
+        except KeyError:
+            share_whatsapp = ''
+
+        ##CONVERSION##
+        try:
+            recruit = petition['activity']['recruit..count'] #Questo non so a cosa si riferisca onestamente, immagino le firme da sito e basta?
+        except KeyError:
+            recruit = ''
+
+        try:
+            recruit_copylink = petition['activity']['recruit.copylink.count']
+        except KeyError:
+            recruit_copylink = ''
+
+        try:
+            recruit_email = petition['activity']['recruit.email.count']
+        except KeyError:
+            recruit_email = ''
+
+        try:
+            recruit_facebook = petition['activity']['recruit.facebook.count']
+        except KeyError:
+            recruit_facebook = ''
+
+        try:
+            recruit_sms = petition['activity']['recruit.sms.count']
+        except KeyError:
+            recruit_sms = ''
+
+        try:
+            recruit_twitter = petition['activity']['recruit.twitter.count']
+        except KeyError:
+            recruit_twitter = ''
+
+        try:
+            recruit_whatsapp = petition['activity']['recruit.whatsapp.count']
+        except KeyError:
+            recruit_whatsapp = ''
 
         row = {
             'date': date,
@@ -236,8 +344,8 @@ def store_petitions(
             'recruit_email': recruit_email,
             'share_facebook': share_facebook,
             'recruit_facebook': recruit_facebook,
-            'share_facebook_messenger': share_facebook_messenger,
-            'recruit_facebook_messenger': recruit_facebook_messenger,
+            #'share_facebook_messenger': share_facebook_messenger,
+            #'recruit_facebook_messenger': recruit_facebook_messenger,
             'share_sms': share_sms,
             'recruit_sms': recruit_sms,
             'share_twitter': share_twitter,
@@ -282,10 +390,13 @@ def save_petitions_to_sheets(
         sheet_cleared = True
         print("Sheets cleared")
 
+    print()
     service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A2:ZZZ",
                                            body={"values": df.values.tolist()},
                                            valueInputOption="USER_ENTERED"
                                            ).execute()
+
+
 
 
 if __name__ == '__main__':
@@ -316,8 +427,8 @@ if __name__ == '__main__':
     ]
 
     langs = [
-        'it-IT',
-        'en-US',
+        # 'it-IT',
+        # 'en-US',
         # 'en-GB'
     ]
 
