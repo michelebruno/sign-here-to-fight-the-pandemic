@@ -3,34 +3,38 @@ import os
 import pandas
 from dotenv import load_dotenv
 
+from utils.change import get_petitions_by_tag, get_related_tags
 from utils.google_services import service
-from utils.http import http
 
 load_dotenv()
 
 PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
-
-def get_related_tags(tag):
-    related_tags = http.get(f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999").json()['items']
-    return related_tags
-
 
 scraped_data = []
 
 
 def store_related_tags(tags, query_term):
     global scraped_data
+
+    petitions = get_petitions_by_tag(query_term)['items']
+    petitions = [p['petition'] for p in petitions]
+    petitions = [[t['slug'] for t in p['tags'] if 'tags' in p] for p in petitions ]
+
     for i in range(len(tags)):
         tag = tags[i]
+
         row = {
             'query_term': query_term,
             'index': i,
-            **tag
+            **tag,
+            'total_count': len([p for p in petitions if tag['slug'] in p])
         }
 
         row.pop('photo_id', None)
 
         scraped_data.append(row)
+
+        break
 
     print(f"Scraped {len(tags)} from {query_term}")
 
@@ -69,7 +73,6 @@ if __name__ == '__main__':
         'covid-19-tr-tr',
         'covid-19-es-es',
         'covid-19-fr-fr',
-
 
     ]
 

@@ -1,7 +1,7 @@
-import json
 import os.path
 from utils.http import http
-
+from utils.change import get_petitions_by_keyword
+from utils.change import get_petitions_by_tag
 import pandas
 from tqdm import tqdm
 from utils.google_services import get_service
@@ -28,73 +28,6 @@ SKIP_ALREADY_DOWNLOADED = True
 service = get_service()
 
 PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
-
-
-def get_petions_from(url):
-    """
-
-    :param url: URL to fetch
-    :return: Object of the fetched data
-    :rtype object
-    """
-
-    res = http.get(url).json()
-
-    if 'err' in res:
-        print(res)
-        raise Exception(f"Sorry, {res['err']}")
-
-    total_count = res['total_count']
-
-    limit = 500
-
-    if total_count < limit:
-        return http.get(f"{url}&limit={total_count}").json()
-
-    items = []
-
-    remaining = total_count - 1
-
-    res = {}
-    with tqdm(total=total_count) as pbar:
-        while remaining > 0:
-            res = http.get(
-                f"{url}&limit={limit if limit < remaining else remaining}&offset={total_count - remaining}").json()
-            items = items + res['items']
-            remaining = remaining - res['count']
-            pbar.update(total_count - remaining)
-
-    res['items'] = items
-    res['count'] = len(items)
-
-    return res
-
-
-def get_petition_by_keyword(keyword, lang='it-IT'):
-    pkl_path = os.path.join('json', 'keywords', lang, f"{keyword}.json")
-    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
-    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
-        with open(pkl_path, 'r') as pkl:
-            print('Got from cache')
-            return json.load(pkl)
-    with open(pkl_path, 'w') as pkl:
-        res = get_petions_from(f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
-        json.dump(res, pkl)
-        return res
-
-
-def get_petitions_by_tag(tag):
-    pkl_path = os.path.join('json', 'tags', f"{tag}.json")
-    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
-    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
-        with open(pkl_path, 'r') as pkl:
-            print('Got from cache')
-            return json.load(pkl)
-    with open(pkl_path, 'w') as pkl:
-        res = get_petions_from(f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
-        json.dump(res, pkl)
-        print("Saved in cache.")
-        return res
 
 
 def download_images_from_petitions(data, folder_name='unnamed'):
@@ -363,7 +296,7 @@ def save_petitions_to_sheets(
 
     df = pandas.DataFrame(stored_petitions)
 
-    #df = df.drop_duplicates(subset=['id'])
+    # df = df.drop_duplicates(subset=['id'])
 
     if not sheet_cleared:
         # with open('./petition-example.json', 'w') as outfile:
