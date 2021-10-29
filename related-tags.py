@@ -3,7 +3,7 @@ import os
 import pandas
 from dotenv import load_dotenv
 
-from utils.change import get_petitions_by_tag, get_related_tags
+from utils.change import get_petitions_by_tag, get_related_tags, filter_petitions_by_tag
 from utils.google_services import service
 
 load_dotenv()
@@ -17,8 +17,6 @@ def store_related_tags(tags, query_term):
     global scraped_data
 
     petitions = get_petitions_by_tag(query_term)['items']
-    petitions = [p['petition'] for p in petitions]
-    petitions = [[t['slug'] for t in p['tags'] if 'tags' in p] for p in petitions ]
 
     for i in range(len(tags)):
         tag = tags[i]
@@ -27,14 +25,12 @@ def store_related_tags(tags, query_term):
             'query_term': query_term,
             'index': i,
             **tag,
-            'total_count': len([p for p in petitions if tag['slug'] in p])
+            'total_count': len(filter_petitions_by_tag(petitions, tag) )
         }
 
         row.pop('photo_id', None)
 
         scraped_data.append(row)
-
-        break
 
     print(f"Scraped {len(tags)} from {query_term}")
 

@@ -1,6 +1,5 @@
 import json
 import os
-
 from tqdm import tqdm
 
 from utils.http import http
@@ -86,3 +85,15 @@ def get_related_tags(tag):
         json.dump(res, pkl)
         print("Saved in cache.")
         return res
+
+
+def filter_petitions_by_tag(petitions, tag):
+    filtered = []
+    for _pet in petitions:
+        pet = _pet['petition']
+        for t in pet['tags']:
+            if t['slug'] == tag['slug']:
+                filtered.append(_pet)
+                break
+
+    return filtered
