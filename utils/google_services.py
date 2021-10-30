@@ -1,5 +1,7 @@
 from __future__ import print_function
 import os.path
+
+import pandas
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -38,4 +40,24 @@ def get_service():
     return build('sheets', 'v4', credentials=get_creds())
 
 
-service = get_service()
+def save_list_to_sheets_tab(list, tab_name):
+    PETITIONS_SPREADSHEET_ID=os.environ.get('PETITION_SPREADSHEET_ID')
+    service = get_service()
+    df = pandas.DataFrame(list)
+
+    # with open('./petition-example.json', 'w') as outfile:
+    #     json.dump(data['items'][0], outfile, indent=4)
+
+    service.spreadsheets().values().clear(spreadsheetId=PETITIONS_SPREADSHEET_ID,
+                                          range=f"{tab_name}!A2:ZZZ").execute()
+
+    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!1:1",
+                                           body={"values": [df.columns.tolist()]},
+                                           valueInputOption="USER_ENTERED"
+                                           ).execute()
+
+    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A2:ZZZ",
+                                           body={"values": df.values.tolist()},
+                                           valueInputOption="USER_ENTERED"
+                                           ).execute()
+    print("Saved to sheets.")

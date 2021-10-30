@@ -4,7 +4,7 @@ import pandas
 from dotenv import load_dotenv
 
 from utils.change import get_petitions_by_tag, get_related_tags, filter_petitions_by_tag
-from utils.google_services import service
+from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
 
@@ -35,27 +35,6 @@ def store_related_tags(tags, query_term):
     print(f"Scraped {len(tags)} from {query_term}")
 
 
-def save_to_sheets():
-    df = pandas.DataFrame(scraped_data)
-
-    tab_name = 'related_tags'
-
-    # with open('./petition-example.json', 'w') as outfile:
-    #     json.dump(data['items'][0], outfile, indent=4)
-
-    service.spreadsheets().values().clear(spreadsheetId=PETITIONS_SPREADSHEET_ID,
-                                          range=f"{tab_name}!A2:ZZZ").execute()
-
-    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!1:1",
-                                           body={"values": [df.columns.tolist()]},
-                                           valueInputOption="USER_ENTERED"
-                                           ).execute()
-
-    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A2:ZZZ",
-                                           body={"values": df.values.tolist()},
-                                           valueInputOption="USER_ENTERED"
-                                           ).execute()
-    print("Saved to sheets.")
 
 
 if __name__ == '__main__':
@@ -75,4 +54,4 @@ if __name__ == '__main__':
     for tag in tags:
         store_related_tags(get_related_tags(tag), tag)
 
-    save_to_sheets()
+    save_list_to_sheets_tab(scraped_data, 'related_tags')
