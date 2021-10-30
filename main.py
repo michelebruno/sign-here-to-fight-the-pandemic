@@ -46,13 +46,13 @@ def download_images_from_petitions(data, folder_name='unnamed'):
         # Esiste almeno una petizione per cui "slug" non è un key valido nel JSON
         # Dio solo sa come
 
-        if "slug" not in each['petition']:
+        if "slug" not in each:
             continue
 
         # ho aggiunto [:140] perché win ha un limite sulla lunghezza del nome del file e del percorso del file.
         # da documentazione dovrebbe essere 160, ma con win non si sa mai
 
-        filename = os.path.join(folder_path, f"{each['petition']['slug'][:140]}.jpg", )
+        filename = os.path.join(folder_path, f"{each['slug'][:140]}.jpg", )
 
         # Controlla se l'immagine è già stata scaricata
         if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
@@ -61,8 +61,8 @@ def download_images_from_petitions(data, folder_name='unnamed'):
             continue
 
         # Prende l'url dell'immagine alla risoluzione più alta e la scarica
-        if type(each['petition']['photo']) is dict:
-            img = http.get(f"https:{each['petition']['photo']['sizes']['large']['url']}")
+        if type(each['photo']) is dict:
+            img = http.get(f"https:{each['photo']['sizes']['large']['url']}")
 
             with open(filename, 'wb') as f:
                 download_count = download_count + 1
@@ -91,8 +91,7 @@ def store_petitions(
         tab_name='petitions',
         found_through='tag', ):
     global stored_petitions
-    for each in data['items']:
-        petition = each['petition']
+    for petition in data['items']:
 
         # A quanto pare non era la questione del -1, se provi a lanciare la ricerca per keyword con "covid" su en-US
         # ne ha tipo 5-6 missing quindi penso sia sempre la questione del limit > remaining
