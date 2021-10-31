@@ -118,3 +118,32 @@ def filter_petitions_by_tag(petitions, tag):
                 break
 
     return filtered
+
+
+def group_by_relevant_location(petitions):
+    groups = {}
+
+    for petition in petitions:
+        location = petition['relevant_location']['country_code']
+
+        if location not in groups:
+            groups[location] = []
+
+        groups[location].append(petition)
+
+    return groups
+
+
+def count_tags(petitions):
+    tags = {}
+
+    for petition in petitions:
+        for tag in petition['tags']:
+            key = tag['slug']
+            if key not in tags:
+                tag['total_count'] = 0
+                tags[key] = tag
+
+            tags[key]['total_count'] += 1
+
+    return tags

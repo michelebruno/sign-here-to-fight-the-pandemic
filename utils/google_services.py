@@ -40,10 +40,15 @@ def get_service():
     return build('sheets', 'v4', credentials=get_creds())
 
 
-def save_list_to_sheets_tab(list, tab_name):
-    PETITIONS_SPREADSHEET_ID=os.environ.get('PETITION_SPREADSHEET_ID')
+def save_list_to_sheets_tab(list, tab_name, columns=None):
+    PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
+
     service = get_service()
+
     df = pandas.DataFrame(list)
+    df.fillna('', inplace=True)
+    # TODO dovrebbe riordinare le colonne ma non lo fa
+    df.reindex(columns=columns, copy=False, fill_value='')
 
     # with open('./petition-example.json', 'w') as outfile:
     #     json.dump(data['items'][0], outfile, indent=4)

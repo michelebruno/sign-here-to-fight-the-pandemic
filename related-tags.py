@@ -1,5 +1,4 @@
 import os
-
 import pandas
 from dotenv import load_dotenv
 
@@ -52,3 +51,4 @@ if __name__ == '__main__':
         store_related_tags(get_related_tags(tag), tag)
 
     save_list_to_sheets_tab(scraped_data, 'related_tags')
+
