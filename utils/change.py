@@ -127,7 +127,8 @@ def group_by_relevant_location(petitions):
 
 
 def group_petitions_by_month(petitions):
-    return itertools.groupby(_parse_date(petitions), key=lambda p: f"{p['published_at'].year}-{p['published_at'].month}")
+    return itertools.groupby(_parse_date(petitions),
+                             key=lambda p: f"{p['published_at'].year}-{p['published_at'].month}")
 
 
 def _parse_date(petitions, prop='published_at'):
@@ -139,16 +140,18 @@ def _parse_date(petitions, prop='published_at'):
     return l
 
 
-def count_tags(petitions):
-    tags = {}
+def count_tags(petitions, **kwargs):
+    found_tags = {}
 
     for petition in petitions:
         for tag in petition['tags']:
-            key = tag['slug']
-            if key not in tags:
-                tag['total_count'] = 0
-                tags[key] = tag
+            key = tag['name']
+            if key not in found_tags:
+                 found_tags[key] = {
+                    'total_count': 0,
+                    **tag
+                }
 
-            tags[key]['total_count'] += 1
+            found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
 
-    return tags
+    return found_tags

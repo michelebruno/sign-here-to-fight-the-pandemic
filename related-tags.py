@@ -1,6 +1,5 @@
 import os
 
-import pandas
 from dotenv import load_dotenv
 
 from utils.change import get_petitions_by_tag, get_related_tags, filter_petitions_by_tag
@@ -25,7 +24,7 @@ def store_related_tags(tags, query_term):
             'query_term': query_term,
             'index': i,
             **tag,
-            'total_count': len(filter_petitions_by_tag(petitions, tag) )
+            'total_count': len(filter_petitions_by_tag(petitions, tag))
         }
 
         row.pop('photo_id', None)
@@ -46,7 +45,10 @@ if __name__ == '__main__':
         'covid-19-tr-tr',
         'covid-19-es-es',
         'covid-19-fr-fr',
-    ]
+        'coronavirus-aid-en-us',
+        'covid-19-en-us',
+         'coronavirus-en-in'
+     ]
 
     for tag in tags:
         store_related_tags(get_related_tags(tag), tag)
