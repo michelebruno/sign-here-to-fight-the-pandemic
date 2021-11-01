@@ -1,3 +1,5 @@
+from datetime import datetime
+import itertools
 import json
 import os
 from tqdm import tqdm
@@ -121,17 +123,20 @@ def filter_petitions_by_tag(petitions, tag):
 
 
 def group_by_relevant_location(petitions):
-    groups = {}
+    return itertools.groupby(petitions, key=lambda p: p['relevant_location']['country_code'])
 
-    for petition in petitions:
-        location = petition['relevant_location']['country_code']
 
-        if location not in groups:
-            groups[location] = []
+def group_petitions_by_month(petitions):
+    return itertools.groupby(_parse_date(petitions), key=lambda p: f"{p['published_at'].year}-{p['published_at'].month}")
 
-        groups[location].append(petition)
 
-    return groups
+def _parse_date(petitions, prop='published_at'):
+    l = []
+    for pet in petitions:
+        pet[prop] = datetime.strptime(pet[prop], '%Y-%m-%dT%H:%M:%SZ')
+        l.append(pet)
+
+    return l
 
 
 def count_tags(petitions):

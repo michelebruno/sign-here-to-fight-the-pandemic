@@ -2,7 +2,7 @@ from pprint import pprint
 
 from dotenv import load_dotenv
 
-from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags
+from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags, group_petitions_by_month
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
@@ -27,16 +27,21 @@ group_by_country = group_by_relevant_location(all_pets)
 
 stored_tags = []
 
-for country in group_by_country:
-    pets = group_by_country[country]
+for country, pets in group_by_country:
 
-    groups = count_tags(pets)
+    by_month = group_petitions_by_month(pets)
 
-    for group in groups:
-        tag = groups[group]
-        tag['relevant_country'] = country
-        stored_tags.append(tag)
+    for month, l in by_month:
+        groups = count_tags(l)
 
-save_list_to_sheets_tab(stored_tags, 'tags_per_country',
+        for group in groups:
+            tag = {
+                'month': month,
+                'relevant_country': country,
+                **groups[group]
+            }
+            stored_tags.append(tag)
+
+save_list_to_sheets_tab(stored_tags, 'tags_months_country',
                         columns=['total_count', 'relevant_country', 'id', 'locale', 'name', 'slug', 'created_by_owner',
                                  'created_by_staff_member', ])
