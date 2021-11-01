@@ -23,7 +23,6 @@ for tag in tags:
         pet['origin_tag'] = tag
         all_pets.append(pet)
 
-stored_tags_by_month = []
 stored_tags_by_country = []
 
 for country, pets in group_by_relevant_location(all_pets):
@@ -37,6 +36,13 @@ for country, pets in group_by_relevant_location(all_pets):
         }
 
         stored_tags_by_country.append(tag)
+
+save_list_to_sheets_tab(stored_tags_by_country, 'tags_country',
+                        columns=['total_count', 'relevant_country', 'id', 'locale', 'name', 'slug', 'created_by_owner',
+                                 'created_by_staff_member', ])
+
+# BY MONTH
+stored_tags_by_month = []
 
 for country, pets in group_by_relevant_location(all_pets):
 
@@ -55,9 +61,5 @@ for country, pets in group_by_relevant_location(all_pets):
             stored_tags_by_month.append(tag)
 
 save_list_to_sheets_tab(stored_tags_by_month, 'tags_months_country',
-                        columns=['total_count', 'relevant_country', 'id', 'locale', 'name', 'slug', 'created_by_owner',
-                                 'created_by_staff_member', ])
-
-save_list_to_sheets_tab(stored_tags_by_country, 'tags_country',
                         columns=['total_count', 'relevant_country', 'id', 'locale', 'name', 'slug', 'created_by_owner',
                                  'created_by_staff_member', ])
