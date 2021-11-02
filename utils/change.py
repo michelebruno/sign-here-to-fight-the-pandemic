@@ -47,6 +47,16 @@ def get_petitions_from(url):
     return res
 
 
+def unique_petitions(petitions):
+    grouped = itertools.groupby(petitions, key=lambda x: x['id'])
+
+    l = []
+    for k, g in grouped:
+        l.append(next(g))
+
+    return l
+
+
 def _normalize_petitions(petitions):
     '''
     Flattens petition list from {id, petition...} to petition only
@@ -65,7 +75,7 @@ def get_petitions_by_keyword(keyword, lang='it-IT'):
     os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
     if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
         with open(pkl_path, 'r') as pkl:
-            print('Got from cache')
+            # print('Got from cache')
             data = json.load(pkl)
             data['items'] = _normalize_petitions(data['items'])
             return data
@@ -83,7 +93,7 @@ def get_petitions_by_tag(tag):
     os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
     if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
         with open(pkl_path, 'r') as pkl:
-            print('Got from cache')
+            # print('Got from cache')
             data = json.load(pkl)
             data['items'] = _normalize_petitions(data['items'])
             return data
@@ -102,7 +112,7 @@ def get_related_tags(tag):
     os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
     if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
         with open(pkl_path, 'r') as pkl:
-            print('Got from cache')
+            # print('Got from cache')
             return json.load(pkl)
     with open(pkl_path, 'w') as pkl:
         res = http.get(f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999").json()['items']
@@ -147,7 +157,7 @@ def count_tags(petitions, **kwargs):
         for tag in petition['tags']:
             key = tag['name']
             if key not in found_tags:
-                 found_tags[key] = {
+                found_tags[key] = {
                     'total_count': 0,
                     **tag
                 }
@@ -155,3 +165,14 @@ def count_tags(petitions, **kwargs):
             found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
 
     return found_tags
+
+
+def get_tags_through_keyword(keyword, lang='en-GB', country=None):
+    pets = get_petitions_by_keyword(keyword, lang)['items']
+
+    if country:
+        pets = [i for i in pets if 'relevant_location' in i and i['relevant_location']['country_code'] == country]
+
+    tags = count_tags(pets)
+
+    return [tags[t] for t in tags]

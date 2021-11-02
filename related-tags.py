@@ -36,19 +36,24 @@ def store_related_tags(tags, query_term):
 
 if __name__ == '__main__':
     tags = [
-        'corona-virus-it-it',
+        "coronavirus-covid-19-fr-fr",
+        "coronavirus-en-gb",
+        "coronavirus-epidemic-en-us",
+        "coronavirus-fr-fr",
+        "covid-19-en-gb",
+        "covid-19-fr-fr",
+        "covid-19-it-it",
         'coronavirus-de-de',
-        'coronavirüs-tr-tr',
+        'coronavirus-en-gb',
         'coronavirus-es-es',
+        'coronavirus-it-it',
+        'coronavirüs-tr-tr',
+        'covid-19-en-gb',
+        'covid-19-health-emergency-en-gb',
+        'covid-fr-fr',
+        'covid19-en-gb',
         'коронавирус-ru-ru',
-        # Added after first search
-        'covid-19-tr-tr',
-        'covid-19-es-es',
-        'covid-19-fr-fr',
-        'coronavirus-aid-en-us',
-        'covid-19-en-us',
-         'coronavirus-en-in'
-     ]
+    ]
 
     for tag in tags:
         store_related_tags(get_related_tags(tag), tag)

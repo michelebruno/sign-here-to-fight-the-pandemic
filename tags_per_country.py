@@ -1,19 +1,38 @@
 import pandas as pd
 from dotenv import load_dotenv
 
-from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags, group_petitions_by_month
+from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags, group_petitions_by_month, \
+    get_tags_through_keyword, unique_petitions
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
 
 tags = [
-    'coronavirus-it-it',
+    "coronavirus-covid-19-fr-fr",
+    "coronavirus-en-gb",
+    "coronavirus-epidemic-en-us",
+    "coronavirus-fr-fr",
+    "covid-19-en-gb",
+    "covid-19-fr-fr",
+    "covid-19-it-it",
+    'corona-de-de',
+    'coronavirus-covid-19-fr-fr',
     'coronavirus-de-de',
-    'coronavirüs-tr-tr',
-    'coronavirus-es-es',
-    'коронавирус-ru-ru',
-    'covid-fr-fr',
     'coronavirus-en-gb',
+    'coronavirus-epidemic-en-us',
+    'coronavirus-es-es',
+    'coronavirus-fr-fr',
+    'coronavirus-it-it',
+    'coronavirüs-tr-tr',
+    'covid-19-en-gb',
+    'covid-19-fr-fr',
+    'covid-19-health-emergency-en-gb',
+    'covid-19-it-it',
+    'covid-fr-fr',
+    'covid19-en-gb',
+    'коронавирус-ru-ru',
+
+
 ]
 
 all_pets = []
@@ -23,6 +42,8 @@ for tag in tags:
     for pet in petitions:
         pet['origin_tag'] = tag
         all_pets.append(pet)
+
+all_pets = unique_petitions(all_pets)
 
 
 def tags_by_country(petitions):
@@ -82,5 +103,8 @@ def tags_by_month_by_country(petitions):
 
 
 if __name__ == '__main__':
+    save_list_to_sheets_tab(
+        [i for i in get_tags_through_keyword('covid-19', lang='de-DE', country='DE') if i['total_count'] > 99],
+        'de-tags')
     tags_by_country(all_pets)
     tags_by_month_by_country(all_pets)
