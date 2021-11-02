@@ -126,39 +126,6 @@ def store_petitions(
         except TypeError:
             img_url = 'n/a'
 
-        # Array con le variabili che inserisco nelle colonne
-        # cols_lst = {
-        #     'share_copylink': 0,
-        #     'share_email' : 0,
-        #     share_facebook,
-        #     share_sms,
-        #     share_twitter,
-        #     share_whatsapp,
-        #     recruit,
-        #     recruit_copylink,
-        #     recruit_email,
-        #     recruit_facebook,
-        #     recruit_sms,
-        #     recruit_twitter,
-        #     recruit_whatsapp
-        # }
-        #
-        # keys_lst = [
-        #     'share.copylink.count',
-        #     'share.email.count',
-        #     'share.facebook.count',
-        #     'share.sms.count',
-        #     'share.twitter.count',
-        #     'share.whatsapp.count',
-        #     'recruit..count',
-        #     'recruit.copylink.count',
-        #     'recruit.email.count',
-        #     'recruit.facebook.count',
-        #     'recruit.sms.count',
-        #     'recruit.twitter.count',
-        #     'recruit.whatsapp.count'
-        # ]
-
         # Confeitor Dennis Ritchie Omnipotenti
         # et vobis, fratres
         # quia peccavi nimis,
