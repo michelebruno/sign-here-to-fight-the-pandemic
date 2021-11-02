@@ -37,6 +37,11 @@ def get_petitions_from(url):
         while remaining > 0:
             res = http.get(
                 f"{url}&limit={limit if limit < remaining else remaining}&offset={total_count - remaining}").json()
+
+            if 'err' in res:
+                print(res)
+                raise Exception(f"Sorry, {res['err']}")
+
             items = items + res['items']
             remaining = remaining - res['count']
             pbar.update(total_count - remaining)
@@ -99,6 +104,13 @@ def get_petitions_by_tag(tag):
             return data
     with open(pkl_path, 'w') as pkl:
         res = get_petitions_from(f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
+
+        if 'err' in res:
+            print(res)
+            raise Exception(f"Sorry, {res['err']} for tag {tag} to url https://www.change.org/api-proxy/-/tags/{tag}/petitions?")
+
+        print(f"Looking for {tag},\t found {res['total_count']}")
+
         json.dump(res, pkl)
         print("Saved in cache.")
         res['items'] = _normalize_petitions(res['items'])
