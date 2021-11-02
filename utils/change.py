@@ -3,6 +3,7 @@ import itertools
 import json
 import os
 
+import pandas
 from dotenv import load_dotenv
 from tqdm import tqdm
 
@@ -30,10 +31,15 @@ def normalize_tag(tag, report=False):
 def _parse_petition(petition):
     petition['published_at'] = datetime.strptime(petition['published_at'], '%Y-%m-%dT%H:%M:%SZ')
 
+    petition['month'] = petition['published_at'].strftime('%Y-%m')
+
+    petition['country'] = petition['relevant_location']['country_code']
+
     tags = []
 
     for tag in petition['tags']:
         tag['name'] = tag['name'].lower()
+        tag['name'] = normalize_tag(tag['name'])
         tags.append(tag)
 
     petition['tags'] = tags
@@ -85,17 +91,6 @@ def get_petitions_from(url):
     res['count'] = len(items)
 
     return res
-
-
-def unique_petitions(petitions):
-    grouped = itertools.groupby(petitions, key=lambda x: x['id'])
-
-    l = []
-
-    for k, g in grouped:
-        l.append(next(g))
-
-    return l
 
 
 def _get_file_or_fetch(path, url):
@@ -152,21 +147,28 @@ def group_petitions_by_month(petitions):
                              key=lambda p: p['published_at'].strftime('%Y-%m'))
 
 
-def count_tags(petitions, **kwargs):
+def count_tags(petitions: pandas.DataFrame, **kwargs):
     found_tags = {}
 
-    for petition in petitions:
-        for tag in petition['tags']:
+    for index, petition in petitions.iterrows():
+
+         for tag in petition['tags']:
             key = normalize_tag(tag['name'])
             if key not in found_tags:
                 found_tags[key] = {
+                    **kwargs,
                     'total_count': 0,
-                    **tag
+                    **tag,
+                    'name': key
                 }
 
             found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
 
-    return found_tags
+    df = pandas.DataFrame([i for k, i in found_tags.items()])
+
+    df.drop(columns=['slug', 'photo_id','created_by_owner',	'created_by_staff_member'], inplace=True)
+
+    return df
 
 
 def get_tags_through_keyword(keyword, lang='en-GB', country=None):
