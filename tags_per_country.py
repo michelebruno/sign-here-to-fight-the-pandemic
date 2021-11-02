@@ -177,8 +177,11 @@ all_pets = pd.DataFrame(all_pets)
 all_pets.drop_duplicates('id', inplace=True)
 
 all_pets = all_pets.loc[all_pets['published_at'] > datetime.datetime(2020, 1, 1)]
+
+# Qui tutti i conteggi dei tag per country
 stored_tags = []
 
+# Qui tutti i conteggi dei tag per country per mese
 stored_months_tags = []
 
 for c, items in all_pets.groupby('country'):
@@ -189,7 +192,17 @@ for c, items in all_pets.groupby('country'):
         ts = count_tags(items2, country=c, month=month)
         stored_months_tags += ts.to_dict('records')
 
-
-
 save_list_to_sheets_tab(stored_tags, 'tags_country')
 save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')
+
+# TEST
+k = 'coronavirus'
+c = 'IT'
+stored_months_tags = pd.DataFrame(stored_months_tags)
+cmtags = stored_months_tags.loc[(stored_months_tags['name'] == k) & (stored_months_tags['country'] == c)]
+
+stored_tags = pd.DataFrame(stored_tags)
+ctags = stored_tags.loc[(stored_tags['name'] == k) & (stored_tags['country'] == c)]
+
+print(ctags['total_count'].sum())
+print(cmtags['total_count'].sum())

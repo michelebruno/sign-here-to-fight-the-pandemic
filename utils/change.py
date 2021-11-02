@@ -23,9 +23,10 @@ for r in normal_rows:
 
 
 def normalize_tag(tag, report=False):
-    if report and tag not in tags_to_normal:
-        print(f"{tag}\tnot found")
-    return tags_to_normal.get(tag, tag)
+    if tag in tags_to_normal and tags_to_normal[tag] and tags_to_normal[tag] != '':
+        return tags_to_normal.get(tag)
+    else:
+        return tag
 
 
 def _parse_petition(petition):
@@ -152,7 +153,7 @@ def count_tags(petitions: pandas.DataFrame, **kwargs):
 
     for index, petition in petitions.iterrows():
 
-         for tag in petition['tags']:
+        for tag in petition['tags']:
             key = normalize_tag(tag['name'])
             if key not in found_tags:
                 found_tags[key] = {
@@ -166,7 +167,7 @@ def count_tags(petitions: pandas.DataFrame, **kwargs):
 
     df = pandas.DataFrame([i for k, i in found_tags.items()])
 
-    df.drop(columns=['slug', 'photo_id','created_by_owner',	'created_by_staff_member'], inplace=True)
+    df.drop(columns=['slug', 'photo_id', 'created_by_owner', 'created_by_staff_member'], inplace=True)
 
     return df
 
