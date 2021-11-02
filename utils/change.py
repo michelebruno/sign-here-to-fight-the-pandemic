@@ -75,62 +75,39 @@ def _normalize_petitions(petitions):
     return updated
 
 
-def get_petitions_by_keyword(keyword, lang='it-IT'):
-    pkl_path = os.path.join(os.getcwd(), 'json', 'keywords', lang, f"{keyword}.json")
-    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
-    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
-        with open(pkl_path, 'r') as pkl:
+def _get_file_or_fetch(path, url):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.isfile(path) and os.path.getsize(path):
+        with open(path, 'r') as pkl:
             # print('Got from cache')
             data = json.load(pkl)
             data['items'] = _normalize_petitions(data['items'])
             return data
-    with open(pkl_path, 'w') as pkl:
-        res = get_petitions_from(f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
+    with open(path, 'w') as pkl:
+        res = get_petitions_from(url)
         json.dump(res, pkl)
 
         res['items'] = _normalize_petitions(res['items'])
 
         return res
+
+
+def get_petitions_by_keyword(keyword, lang='it-IT'):
+    pkl_path = os.path.join(os.getcwd(), 'json', 'keywords', lang, f"{keyword}.json")
+
+    return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
 
 
 def get_petitions_by_tag(tag):
     pkl_path = os.path.join('json', 'tags', f"{tag}.json")
-    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
-    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
-        with open(pkl_path, 'r') as pkl:
-            # print('Got from cache')
-            data = json.load(pkl)
-            data['items'] = _normalize_petitions(data['items'])
-            return data
-    with open(pkl_path, 'w') as pkl:
-        res = get_petitions_from(f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
 
-        if 'err' in res:
-            print(res)
-            raise Exception(f"Sorry, {res['err']} for tag {tag} to url https://www.change.org/api-proxy/-/tags/{tag}/petitions?")
-
-        print(f"Looking for {tag},\t found {res['total_count']}")
-
-        json.dump(res, pkl)
-        print("Saved in cache.")
-        res['items'] = _normalize_petitions(res['items'])
-
-        return res
+    return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
 
 
 def get_related_tags(tag):
     pkl_path = os.path.join('json', 'related_tags', f"{tag}.json")
 
-    os.makedirs(os.path.dirname(pkl_path), exist_ok=True)
-    if os.path.isfile(pkl_path) and os.path.getsize(pkl_path):
-        with open(pkl_path, 'r') as pkl:
-            # print('Got from cache')
-            return json.load(pkl)
-    with open(pkl_path, 'w') as pkl:
-        res = http.get(f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999").json()['items']
-        json.dump(res, pkl)
-        print("Saved in cache.")
-        return res
+    return _get_file_or_fetch(pkl_path, f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999")
 
 
 def filter_petitions_by_tag(petitions, tag):
