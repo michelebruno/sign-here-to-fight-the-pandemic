@@ -2,9 +2,43 @@ from datetime import datetime
 import itertools
 import json
 import os
+
+from dotenv import load_dotenv
 from tqdm import tqdm
 
+import utils.google_services
 from utils.http import http
+
+load_dotenv()
+
+service = utils.google_services.get_service()
+normalized = service.spreadsheets().values().get(
+    spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='normal_tags!A:C').execute()
+normal_rows = normalized.get('values', [])
+
+tags_to_normal = {}
+for r in normal_rows:
+    tags_to_normal[r[0].lower()] = r[1]
+
+
+def normalize_tag(tag, report=False):
+    if report and tag not in tags_to_normal:
+        print(f"{tag}\tnot found")
+    return tags_to_normal.get(tag, tag)
+
+
+def _parse_petition(petition):
+    petition['published_at'] = datetime.strptime(petition['published_at'], '%Y-%m-%dT%H:%M:%SZ')
+
+    tags = []
+
+    for tag in petition['tags']:
+        tag['name'] = tag['name'].lower()
+        tags.append(tag)
+
+    petition['tags'] = tags
+
+    return petition
 
 
 def get_petitions_from(url):
@@ -33,6 +67,7 @@ def get_petitions_from(url):
     remaining = total_count - 1
 
     res = {}
+
     with tqdm(total=total_count) as pbar:
         while remaining > 0:
             res = http.get(
@@ -56,23 +91,11 @@ def unique_petitions(petitions):
     grouped = itertools.groupby(petitions, key=lambda x: x['id'])
 
     l = []
+
     for k, g in grouped:
         l.append(next(g))
 
     return l
-
-
-def _normalize_petitions(petitions):
-    '''
-    Flattens petition list from {id, petition...} to petition only
-    :param petitions:
-    :return:
-    '''
-    updated = []
-    for petition in petitions:
-        updated.append(petition['petition'])
-
-    return updated
 
 
 def _get_file_or_fetch(path, url):
@@ -81,14 +104,13 @@ def _get_file_or_fetch(path, url):
         with open(path, 'r') as pkl:
             # print('Got from cache')
             data = json.load(pkl)
-            data['items'] = _normalize_petitions(data['items'])
+            data['items'] = [_parse_petition(i['petition']) for i in data['items']]
             return data
     with open(path, 'w') as pkl:
         res = get_petitions_from(url)
         json.dump(res, pkl)
 
-        res['items'] = _normalize_petitions(res['items'])
-
+        res['items'] = [_parse_petition(i['petition']) for i in res['items']]
         return res
 
 
@@ -126,17 +148,8 @@ def group_by_relevant_location(petitions):
 
 
 def group_petitions_by_month(petitions):
-    return itertools.groupby(_parse_date(petitions),
-                             key=lambda p: f"{p['published_at'].year}-{p['published_at'].month}")
-
-
-def _parse_date(petitions, prop='published_at'):
-    l = []
-    for pet in petitions:
-        pet[prop] = datetime.strptime(pet[prop], '%Y-%m-%dT%H:%M:%SZ')
-        l.append(pet)
-
-    return l
+    return itertools.groupby(petitions,
+                             key=lambda p: p['published_at'].strftime('%Y-%m'))
 
 
 def count_tags(petitions, **kwargs):
@@ -144,7 +157,7 @@ def count_tags(petitions, **kwargs):
 
     for petition in petitions:
         for tag in petition['tags']:
-            key = tag['name']
+            key = normalize_tag(tag['name'])
             if key not in found_tags:
                 found_tags[key] = {
                     'total_count': 0,
