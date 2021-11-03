@@ -1,8 +1,10 @@
+import datetime
+
 import pandas as pd
 from dotenv import load_dotenv
 
 from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags, group_petitions_by_month, \
-    get_tags_through_keyword, unique_petitions
+    get_tags_through_keyword
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
@@ -164,74 +166,43 @@ all_pets = []
 
 for tag in tags:
     res = get_petitions_by_tag(tag)
-    print(f"Found for tag\t{tag}\t{res['total_count']}")
+    # print(f"Found for tag\t{tag}\t{res['total_count']}")
     petitions = res['items']
     for pet in petitions:
         pet['origin_tag'] = tag
         all_pets.append(pet)
 
-all_pets = unique_petitions(all_pets)
+all_pets = pd.DataFrame(all_pets)
 
+all_pets.drop_duplicates('id', inplace=True)
 
-def tags_by_country(petitions):
-    stored_tags_by_country = []
+all_pets = all_pets.loc[all_pets['published_at'] > datetime.datetime(2020, 1, 1)]
 
-    for country, pets in group_by_relevant_location(petitions):
+# Qui tutti i conteggi dei tag per country
+stored_tags = []
 
-        country_tags = count_tags(pets, country=country)
+# Qui tutti i conteggi dei tag per country per mese
+stored_months_tags = []
 
-        for _tag in country_tags:
-            stored_tags_by_country.append({
-                'country': country,
-                **country_tags[_tag]
-            })
+for c, items in all_pets.groupby('country'):
+    tags = count_tags(items, country=c)
+    stored_tags += tags.to_dict('records')
 
-    df = pd.DataFrame(stored_tags_by_country)
+    for month, items2 in items.groupby('month'):
+        ts = count_tags(items2, country=c, month=month)
+        stored_months_tags += ts.to_dict('records')
 
-    df['total_count'] = df.groupby(['name', 'country'], as_index=False).total_count.transform('sum')
+save_list_to_sheets_tab(stored_tags, 'tags_country')
+save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')
 
-    df.drop_duplicates(subset=['name', 'country'], inplace=True)
+# TEST
+k = 'coronavirus'
+c = 'IT'
+stored_months_tags = pd.DataFrame(stored_months_tags)
+cmtags = stored_months_tags.loc[(stored_months_tags['name'] == k) & (stored_months_tags['country'] == c)]
 
-    df.drop(columns=['photo_id', 'slug', 'id', 'created_by_owner', 'created_by_staff_member'], inplace=True)
+stored_tags = pd.DataFrame(stored_tags)
+ctags = stored_tags.loc[(stored_tags['name'] == k) & (stored_tags['country'] == c)]
 
-    save_list_to_sheets_tab(df, 'tags_country')
-    return df
-
-
-def tags_by_month_by_country(petitions):
-    # BY MONTH
-    stored_tags_by_month = []
-
-    for country, pets in group_by_relevant_location(petitions):
-
-        by_month = group_petitions_by_month(pets)
-
-        for month, l in by_month:
-            groups = count_tags(l)
-
-            for group in groups:
-                tag = {
-                    'month': month,
-                    'country': country,
-                    **groups[group]
-                }
-
-                stored_tags_by_month.append(tag)
-
-    df = pd.DataFrame(stored_tags_by_month)
-
-    df['total_count'] = df.groupby(['name', 'country', 'month'], as_index=False).total_count.transform('sum')
-
-    df.drop_duplicates(subset=['name', 'country', 'month'], inplace=True)
-
-    df.drop(columns=['photo_id', 'slug', 'id', 'created_by_owner', 'created_by_staff_member'], inplace=True)
-
-    save_list_to_sheets_tab(df, 'tags_months_country')
-
-
-if __name__ == '__main__':
-    save_list_to_sheets_tab(
-        [i for i in get_tags_through_keyword('covid-19', lang='de-DE', country='DE') if i['total_count'] > 99],
-        'de-tags')
-    tags_by_country(all_pets)
-    tags_by_month_by_country(all_pets)
+print(ctags['total_count'].sum())
+print(cmtags['total_count'].sum())
