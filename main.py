@@ -1,6 +1,5 @@
 import os.path
 from utils.http import http
-from utils.change import get_petitions_by_keyword
 from utils.change import get_petitions_by_tag
 import pandas
 from tqdm import tqdm
