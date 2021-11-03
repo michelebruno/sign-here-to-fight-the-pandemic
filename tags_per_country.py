@@ -205,4 +205,4 @@ save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')
 # Output pivot csv
 stored_tags = pandas.DataFrame(stored_tags)
 stored_tags.loc[stored_tags['total_count'] > 5].pivot_table(values='total_count', columns='name',
-                                                           index='country').fillna(0).to_json('pivot/tags_per_country.json')
+                                                           index='country').fillna(0).to_csv('pivot/tags_per_country.csv')
