@@ -104,13 +104,14 @@ def _get_file_or_fetch(path, url):
         with open(path, 'r') as pkl:
             # print('Got from cache')
             data = json.load(pkl)
-            data['items'] = [_parse_petition(i['petition']) for i in data['items']]
+            data['items'] = [_parse_petition(i['petition']) for i in data['items'] if
+                             'missingPetition' not in i['petition']]
             return data
     with open(path, 'w') as pkl:
         res = get_petitions_from(url)
         json.dump(res, pkl)
 
-        res['items'] = [_parse_petition(i['petition']) for i in res['items']]
+        res['items'] = [_parse_petition(i['petition']) for i in res['items'] if 'missingPetition' not in i['petition']]
         return res
 
 
@@ -153,6 +154,9 @@ def group_petitions_by_month(petitions):
 
 
 def count_tags(petitions: pandas.DataFrame, **kwargs):
+    if not isinstance(petitions, pandas.DataFrame):
+        petitions = pandas.DataFrame(petitions)
+
     found_tags = {}
 
     for index, petition in petitions.iterrows():
@@ -177,8 +181,23 @@ def get_tags_through_keyword(keyword, lang='en-GB', country=None):
     pets = get_petitions_by_keyword(keyword, lang)['items']
 
     if country:
-        pets = [i for i in pets if 'relevant_location' in i and i['relevant_location']['country_code'] == country]
+        pets = [i for i in pets if i['country'] == country]
 
-    tags = count_tags(pets)
+    found_tags = {}
 
-    return [tags[t] for t in tags]
+    for petition in pets:
+
+        for tag in petition['tags']:
+            key = tag['slug']
+
+            if key not in found_tags:
+                found_tags[key] = {
+                    'total_count': 0,
+                    **tag
+                }
+
+            found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
+
+    tags = pandas.DataFrame([i for k, i in found_tags.items()])
+
+    return tags.to_dict('records')

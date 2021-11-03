@@ -1,47 +1,47 @@
-country-name;country-code
-Russia;RU
-Ukraine;UA
-France;FR
-Spain;ES
-Sweden;SE
-Norway;NO
-Germany;DE
-Finland;FI
-Poland;PL
-Italy;IT
-United Kingdom;GB
-Romania;RO
-Belarus;BY
-Greece;GR
-Bulgaria;BG
-Iceland;IS
-Hungary;HU
-Portugal;PT
-Austria;AT
-Czechia;CZ
-Serbia;RS
-Ireland;IE
-Lithuania;LT
-Latvia;LV
-Croatia;HR
-Bosnia and Herzegovina;BA
-Slovakia;SK
-Estonia;EE
-Denmark;DK
-Switzerland;CH
-Netherlands;NL
-Moldova;MD
-Belgium;BE
-Albania;AL
-North Macedonia;MK
-Turkey;TR
-Slovenia;SI
-Montenegro;ME
-Cyprus;CY
-Luxembourg;LU
-Andorra;AD
-Malta;MT
-Liechtenstein;LI
-San Marino;SM
-Monaco;MC
-Vatican City;VA
+country-name,country-code
+Russia,RU
+Ukraine,UA
+France,FR
+Spain,ES
+Sweden,SE
+Norway,NO
+Germany,DE
+Finland,FI
+Poland,PL
+Italy,IT
+United Kingdom,GB
+Romania,RO
+Belarus,BY
+Greece,GR
+Bulgaria,BG
+Iceland,IS
+Hungary,HU
+Portugal,PT
+Austria,AT
+Czechia,CZ
+Serbia,RS
+Ireland,IE
+Lithuania,LT
+Latvia,LV
+Croatia,HR
+Bosnia and Herzegovina,BA
+Slovakia,SK
+Estonia,EE
+Denmark,DK
+Switzerland,CH
+Netherlands,NL
+Moldova,MD
+Belgium,BE
+Albania,AL
+North Macedonia,MK
+Turkey,TR
+Slovenia,SI
+Montenegro,ME
+Cyprus,CY
+Luxembourg,LU
+Andorra,AD
+Malta,MT
+Liechtenstein,LI
+San Marino,SM
+Monaco,MC
+Vatican City,VA

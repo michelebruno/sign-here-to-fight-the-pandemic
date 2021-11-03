@@ -1,5 +1,6 @@
 import datetime
 
+import pandas
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -160,7 +161,12 @@ tags = [
     'covid19-grant-en-gb',
     'lucknow-en-gb',
     'corona-warriors-en-gb',
+    'covid-19-de-de',
+    'corona-virus-de-de',
+    'covid19-de-de'
 ]
+
+european_countries = pandas.read_csv('country-code_dict.csv')
 
 all_pets = []
 
@@ -176,7 +182,8 @@ all_pets = pd.DataFrame(all_pets)
 
 all_pets.drop_duplicates('id', inplace=True)
 
-all_pets = all_pets.loc[all_pets['published_at'] > datetime.datetime(2020, 1, 1)]
+all_pets = all_pets.loc[(all_pets['published_at'] > datetime.datetime(2020, 1, 1)) & (
+    all_pets['country'].isin(european_countries['country-code']))]
 
 # Qui tutti i conteggi dei tag per country
 stored_tags = []
@@ -195,14 +202,7 @@ for c, items in all_pets.groupby('country'):
 save_list_to_sheets_tab(stored_tags, 'tags_country')
 save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')
 
-# TEST
-k = 'coronavirus'
-c = 'IT'
-stored_months_tags = pd.DataFrame(stored_months_tags)
-cmtags = stored_months_tags.loc[(stored_months_tags['name'] == k) & (stored_months_tags['country'] == c)]
-
-stored_tags = pd.DataFrame(stored_tags)
-ctags = stored_tags.loc[(stored_tags['name'] == k) & (stored_tags['country'] == c)]
-
-print(ctags['total_count'].sum())
-print(cmtags['total_count'].sum())
+# Output pivot csv
+stored_tags = pandas.DataFrame(stored_tags)
+stored_tags.loc[stored_tags['total_count'] > 5].pivot_table(values='total_count', columns='name',
+                                                           index='country').fillna(0).to_json('pivot/tags_per_country.json')
