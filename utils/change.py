@@ -36,13 +36,17 @@ def _parse_petition(petition):
 
     petition['country'] = petition['relevant_location']['country_code']
 
+    tag_names = []
+
     tags = []
 
     for tag in petition['tags']:
         tag['name'] = tag['name'].lower()
-        tag['name'] = normalize_tag(tag['name'])
+        n = normalize_tag(tag['name'])
+        tag_names.append(n)
+        tag['name'] = n
         tags.append(tag)
-
+    petition['tag_names'] = set(tag_names)
     petition['tags'] = tags
 
     return petition
@@ -153,21 +157,18 @@ def count_tags(petitions: pandas.DataFrame, **kwargs):
 
     for index, petition in petitions.iterrows():
 
-        for tag in petition['tags']:
-            key = normalize_tag(tag['name'])
-            if key not in found_tags:
-                found_tags[key] = {
-                    **kwargs,
+        for tag in petition['tag_names']:
+
+            if tag not in found_tags:
+                found_tags[tag] = {
                     'total_count': 0,
-                    **tag,
-                    'name': key
+                    'name': tag,
+                    **kwargs,
                 }
 
-            found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
+            found_tags[tag]['total_count'] = found_tags[tag]['total_count'] + 1
 
     df = pandas.DataFrame([i for k, i in found_tags.items()])
-
-    df.drop(columns=['slug', 'photo_id', 'created_by_owner', 'created_by_staff_member'], inplace=True)
 
     return df
 
