@@ -36,7 +36,6 @@ def _parse_petition(petition):
         tag['name'] = tag['name'].lower()
         n = normalize_tag(tag['name'])
         tag_names.append(n)
-        tag['name'] = n
         tags.append(tag)
     petition['tag_names'] = set(tag_names)
     petition['tags'] = tags
@@ -44,30 +43,36 @@ def _parse_petition(petition):
     return petition
 
 
-_normalized_tags = {}
+_all_petitions = {}
 
 
 def get_all_petitions():
-    return pandas.read_json(os.path.join('json', 'all_petitions.json'))
+    global _all_petitions
+
+    if not isinstance(_all_petitions, pandas.DataFrame):
+        _all_petitions = pandas.read_json(os.path.join('json', 'all_petitions.json'))
+
+    return _all_petitions
 
 
 def save_all_petitions(petitions: pandas.DataFrame):
     return petitions.to_json(os.path.join('json', 'all_petitions.json'))
 
 
+_normalized_tags = {}
+
+
 def get_normalized_tags():
     global _normalized_tags
 
-    if _normalized_tags:
-        return _normalized_tags
+    if not _normalized_tags:
+        normalized = service.spreadsheets().values().get(
+            spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='normal_tags!A2:C').execute()
+        normal_rows = normalized.get('values', [])
 
-    normalized = service.spreadsheets().values().get(
-        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='normal_tags!A:C').execute()
-    normal_rows = normalized.get('values', [])
-
-    _normalized_tags = {}
-    for r in normal_rows:
-        _normalized_tags[r[0].lower()] = r[2]
+        _normalized_tags = {}
+        for r in normal_rows:
+            _normalized_tags[r[0].lower()] = r[2]
 
     return _normalized_tags
 
@@ -81,28 +86,25 @@ def normalize_tag(tag):
         return tag
 
 
-def get_tags_from_normalized(tag):
-    tags = get_normalized_tags()
-
-    result = []
-
-    for t in tags:
-        if tag == t:
-            result.append(t)
-
-    return set(result)
-
-
-def tag_slugs_from_normalized(all_pets, found_tags):
+def tag_slugs_from_normalized(tag):
     slugs = []
-    for i, p in all_pets.iterrows():
 
-        for t in p['tags']:
-            if t['name'] in found_tags:
-                slugs.append(t['slug'])
+    names = []
 
-    return set(slugs)
+    for k, n in get_normalized_tags().items():
+        if n == tag:
+            names.append(k)
 
+    all_tags = service.spreadsheets().values().get(
+        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='all_tags!A2:H'
+    ).execute().get('values', [])
+
+    for name in names:
+        for i in all_tags:
+            if i[3] == name:
+                slugs.append(i[4])
+
+    return slugs
 
 def get_petitions_from(url):
     """
@@ -223,6 +225,31 @@ def count_tags(petitions: pandas.DataFrame, **kwargs):
                 }
 
             found_tags[tag]['total_count'] = found_tags[tag]['total_count'] + 1
+
+    df = pandas.DataFrame([i for k, i in found_tags.items()])
+
+    return df
+
+
+def count_not_normalized_tags(petitions: pandas.DataFrame, **kwargs):
+    if not isinstance(petitions, pandas.DataFrame):
+        petitions = pandas.DataFrame(petitions)
+
+    found_tags = {}
+
+    for index, petition in petitions.iterrows():
+
+        for tag in petition['tags']:
+            key = tag['slug']
+
+            if key not in found_tags:
+                found_tags[key] = {
+                    'total_count': 0,
+                    **kwargs,
+                    **tag
+                }
+
+            found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
 
     df = pandas.DataFrame([i for k, i in found_tags.items()])
 
