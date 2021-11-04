@@ -4,7 +4,7 @@ import pandas
 import pandas as pd
 from dotenv import load_dotenv
 
-from utils.change import get_petitions_by_tag, count_tags, get_tags_through_keyword, get_normalized_tags
+from utils.change import get_petitions_by_tag, count_tags, get_normalized_tags
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()

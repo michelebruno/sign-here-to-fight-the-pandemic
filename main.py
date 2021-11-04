@@ -24,62 +24,10 @@ def cleanhtml(raw_html):
 
 load_dotenv()
 
-SKIP_ALREADY_DOWNLOADED = True
 
 service = get_service()
 
 PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
-
-
-def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unnamed'):
-    download_count = 0
-    already_downloaded = 0
-    no_pic_found = 0
-
-    folder_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), folder_name)
-
-    os.makedirs(os.path.dirname(folder_path), exist_ok=True)
-
-    print('Sto scaricando le immagini...')
-
-    for _i, each in tqdm(petitions.iterrows()):
-
-        # Esiste almeno una petizione per cui "slug" non è un key valido nel JSON
-        # Dio solo sa come
-
-        if "slug" not in each:
-            continue
-
-        # ho aggiunto [:140] perché win ha un limite sulla lunghezza del nome del file e del percorso del file.
-        # da documentazione dovrebbe essere 160, ma con win non si sa mai
-
-        filename = os.path.join(folder_path, f"{each['slug'][:140]}.jpg", )
-
-        # Controlla se l'immagine è già stata scaricata
-        if SKIP_ALREADY_DOWNLOADED and os.path.isfile(filename):
-            # print(each['id'] + ' has already been downloaded')
-            already_downloaded = already_downloaded + 1
-            continue
-
-        # Prende l'url dell'immagine alla risoluzione più alta e la scarica
-        if type(each['photo']) is dict:
-            img = http.get(f"https:{each['photo']['sizes']['large']['url']}")
-
-            with open(filename, 'wb') as f:
-                download_count = download_count + 1
-                f.write(img.content)
-                # print(f"{each['id']} downloaded")
-        else:
-            # print(f"{each['id']} has no pic")
-            no_pic_found = no_pic_found + 1
-            continue
-
-    print(
-        f"Total images {already_downloaded + download_count}. "
-        f"Downloaded {download_count}. "
-        f"Already downloaded: {already_downloaded}. "
-        f"With no images {no_pic_found} ")
-
 
 sheet_cleared = False
 
