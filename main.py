@@ -31,7 +31,7 @@ service = get_service()
 PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
 
 
-def download_images_from_petitions(data, folder_name='unnamed'):
+def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unnamed'):
     download_count = 0
     already_downloaded = 0
     no_pic_found = 0
@@ -42,7 +42,7 @@ def download_images_from_petitions(data, folder_name='unnamed'):
 
     print('Sto scaricando le immagini...')
 
-    for each in tqdm(data['items']):
+    for _i, each in tqdm(petitions.iterrows()):
 
         # Esiste almeno una petizione per cui "slug" non è un key valido nel JSON
         # Dio solo sa come
@@ -75,7 +75,6 @@ def download_images_from_petitions(data, folder_name='unnamed'):
             continue
 
     print(
-        f"Petitions found {data['total_count']}. "
         f"Total images {already_downloaded + download_count}. "
         f"Downloaded {download_count}. "
         f"Already downloaded: {already_downloaded}. "
@@ -104,7 +103,7 @@ def store_petitions(
             print('ERROR: PETITION NOT FOUND :(')
             continue
 
-         # pprint(petition['activity'])
+        # pprint(petition['activity'])
 
         # TODO questo potenzialmente tutto in row?
         title = petition['title']
@@ -140,7 +139,6 @@ def store_petitions(
         # et vobis fratres
         # orare pro me ab Guido van Rossum Deum Nostrum
 
-
         row = {
             'origin': key_term,
             'date': date,
@@ -149,7 +147,7 @@ def store_petitions(
             'page_views': page_views,
             # 'key_term': key_term,
             'country': relevant_location['country_code'],
-            'tags': ', '.join([x['slug'] for x in tags_]),
+            'tags': ', '.join(petition['tag_names']),
             'user_id': user['id'],
             'user': creator_name,
             'targets': targets,
@@ -206,8 +204,6 @@ if __name__ == '__main__':
         # 'en-GB'
     ]
 
-
-
     # for lang in langs:
     #     for keyword in keywords:
     #         print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
@@ -221,3 +217,12 @@ if __name__ == '__main__':
     #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
     store_petitions(all_pets, '')
     save_list_to_sheets_tab(stored_petitions, 'petitions')
+
+target_source = []
+
+for i, p in all_pets.iterrows():
+    for t in p['tag_names']:
+        target_source.append({
+            'source': p['slug'],
+            'target': t
+        })

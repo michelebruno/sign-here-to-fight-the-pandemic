@@ -19,7 +19,7 @@ normal_rows = normalized.get('values', [])
 
 tags_to_normal = {}
 for r in normal_rows:
-    tags_to_normal[r[0].lower()] = r[1]
+    tags_to_normal[r[0].lower()] = r[2]
 
 
 def normalize_tag(tag, report=False):
@@ -50,6 +50,17 @@ def _parse_petition(petition):
     petition['tags'] = tags
 
     return petition
+
+
+def tag_slugs_from_normalized(all_pets, found_tags):
+    slugs = []
+    for i, p in all_pets.iterrows():
+
+        for t in p['tags']:
+            if t['name'] in found_tags:
+                slugs.append(t['slug'])
+
+    return set(slugs)
 
 
 def get_petitions_from(url):
