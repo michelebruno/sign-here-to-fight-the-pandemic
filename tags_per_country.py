@@ -4,8 +4,7 @@ import pandas
 import pandas as pd
 from dotenv import load_dotenv
 
-from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags, group_petitions_by_month, \
-    get_tags_through_keyword, tags_to_normal
+from utils.change import get_petitions_by_tag, count_tags, get_tags_through_keyword, get_normalized_tags
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
@@ -200,7 +199,7 @@ if __name__ == '__main__':
             ts = count_tags(items2, country=c, month=month)
             stored_months_tags += ts.to_dict('records')
 
-    stored_months_tags = [t for t in stored_months_tags if t['name'] in [m for i, m in tags_to_normal.items()]]
+    stored_months_tags = [t for t in stored_months_tags if t['name'] in [m for i, m in get_normalized_tags().items()]]
 
     save_list_to_sheets_tab(stored_tags, 'tags_country')
     save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')

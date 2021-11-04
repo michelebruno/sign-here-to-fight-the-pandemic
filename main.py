@@ -218,11 +218,3 @@ if __name__ == '__main__':
     store_petitions(all_pets, '')
     save_list_to_sheets_tab(stored_petitions, 'petitions')
 
-target_source = []
-
-for i, p in all_pets.iterrows():
-    for t in p['tag_names']:
-        target_source.append({
-            'source': p['slug'],
-            'target': t
-        })

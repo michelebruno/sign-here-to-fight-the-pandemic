@@ -13,23 +13,15 @@ from utils.http import http
 load_dotenv()
 
 service = utils.google_services.get_service()
-normalized = service.spreadsheets().values().get(
-    spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='normal_tags!A:C').execute()
-normal_rows = normalized.get('values', [])
-
-tags_to_normal = {}
-for r in normal_rows:
-    tags_to_normal[r[0].lower()] = r[2]
-
-
-def normalize_tag(tag, report=False):
-    if tag in tags_to_normal and tags_to_normal[tag] and tags_to_normal[tag] != '':
-        return tags_to_normal.get(tag)
-    else:
-        return tag
 
 
 def _parse_petition(petition):
+    '''
+    Always executed on each petition found from change.org
+    :param petition:
+    :return:
+    '''
+
     petition['published_at'] = datetime.strptime(petition['published_at'], '%Y-%m-%dT%H:%M:%SZ')
 
     petition['month'] = petition['published_at'].strftime('%Y-%m')
@@ -50,6 +42,55 @@ def _parse_petition(petition):
     petition['tags'] = tags
 
     return petition
+
+
+_normalized_tags = {}
+
+
+def get_all_petitions():
+    return pandas.read_json(os.path.join('json', 'all_petitions.json'))
+
+
+def save_all_petitions(petitions: pandas.DataFrame):
+    return petitions.to_json(os.path.join('json', 'all_petitions.json'))
+
+
+def get_normalized_tags():
+    global _normalized_tags
+
+    if _normalized_tags:
+        return _normalized_tags
+
+    normalized = service.spreadsheets().values().get(
+        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='normal_tags!A:C').execute()
+    normal_rows = normalized.get('values', [])
+
+    _normalized_tags = {}
+    for r in normal_rows:
+        _normalized_tags[r[0].lower()] = r[2]
+
+    return _normalized_tags
+
+
+def normalize_tag(tag):
+    tags = get_normalized_tags()
+
+    if tag in tags and tags[tag] and tags[tag] != '':
+        return tags.get(tag)
+    else:
+        return tag
+
+
+def get_tags_from_normalized(tag):
+    tags = get_normalized_tags()
+
+    result = []
+
+    for t in tags:
+        if tag == t:
+            result.append(t)
+
+    return set(result)
 
 
 def tag_slugs_from_normalized(all_pets, found_tags):
@@ -109,7 +150,7 @@ def get_petitions_from(url):
     return res
 
 
-def _get_file_or_fetch(path, url):
+def _get_file_or_fetch(path: str, url: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if os.path.isfile(path) and os.path.getsize(path):
         with open(path, 'r') as pkl:
@@ -126,19 +167,19 @@ def _get_file_or_fetch(path, url):
         return res
 
 
-def get_petitions_by_keyword(keyword, lang='it-IT'):
+def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
     pkl_path = os.path.join(os.getcwd(), 'json', 'keywords', lang, f"{keyword}.json")
 
     return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
 
 
-def get_petitions_by_tag(tag):
+def get_petitions_by_tag(tag: str):
     pkl_path = os.path.join('json', 'tags', f"{tag}.json")
 
     return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
 
 
-def get_related_tags(tag):
+def get_related_tags(tag: str):
     pkl_path = os.path.join('json', 'related_tags', f"{tag}.json")
 
     return _get_file_or_fetch(pkl_path, f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999")
