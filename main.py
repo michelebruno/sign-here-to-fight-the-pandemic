@@ -1,12 +1,14 @@
 import os.path
+from pprint import pprint
+
 from utils.http import http
 from utils.change import get_petitions_by_tag
 import pandas
 from tqdm import tqdm
-from utils.google_services import get_service
+from utils.google_services import get_service, save_list_to_sheets_tab
 from dotenv import load_dotenv
 from urllib.parse import quote
-
+from tags_per_country import all_pets
 import re
 
 CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
@@ -90,7 +92,8 @@ def store_petitions(
         tab_name='petitions',
         found_through='tag', ):
     global stored_petitions
-    for petition in data['items']:
+
+    for _index, petition in data.iterrows():
 
         # A quanto pare non era la questione del -1, se provi a lanciare la ricerca per keyword con "covid" su en-US
         # ne ha tipo 5-6 missing quindi penso sia sempre la questione del limit > remaining
@@ -101,7 +104,7 @@ def store_petitions(
             print('ERROR: PETITION NOT FOUND :(')
             continue
 
-        # pprint(petition['activity'])
+         # pprint(petition['activity'])
 
         # TODO questo potenzialmente tutto in row?
         title = petition['title']
@@ -110,7 +113,7 @@ def store_petitions(
         creator_name = petition['creator_name']
         targets = petition['targeting_description']
         relevant_location = petition['relevant_location']
-        date = petition['created_at'][:10]
+        date = petition['published_at'].strftime('%Y-%m-%d')
         description = cleanhtml(petition['description'])
         tags_ = petition['tags']
         is_victory = petition['is_victory']
@@ -137,73 +140,6 @@ def store_petitions(
         # et vobis fratres
         # orare pro me ab Guido van Rossum Deum Nostrum
 
-        ##SHARE##
-        try:
-            share_copylink = petition['activity']['share.copylink.count']
-        except KeyError:
-            share_copylink = ''
-
-        try:
-            share_email = petition['activity']['share.email.count']
-        except KeyError:
-            share_email = ''
-
-        try:
-            share_facebook = petition['activity']['share.facebook.count']
-        except KeyError:
-            share_facebook = ''
-
-        try:
-            share_sms = petition['activity']['share.sms.count']
-        except KeyError:
-            share_sms = ''
-
-        try:
-            share_twitter = petition['activity']['share.twitter.count']
-        except KeyError:
-            share_twitter = ''
-
-        try:
-            share_whatsapp = petition['activity']['share.whatsapp.count']
-        except KeyError:
-            share_whatsapp = ''
-
-        ##CONVERSION##
-        try:
-            recruit = petition['activity'][
-                'recruit..count']  # Questo non so a cosa si riferisca onestamente, immagino le firme da sito e basta?
-        except KeyError:
-            recruit = ''
-
-        try:
-            recruit_copylink = petition['activity']['recruit.copylink.count']
-        except KeyError:
-            recruit_copylink = ''
-
-        try:
-            recruit_email = petition['activity']['recruit.email.count']
-        except KeyError:
-            recruit_email = ''
-
-        try:
-            recruit_facebook = petition['activity']['recruit.facebook.count']
-        except KeyError:
-            recruit_facebook = ''
-
-        try:
-            recruit_sms = petition['activity']['recruit.sms.count']
-        except KeyError:
-            recruit_sms = ''
-
-        try:
-            recruit_twitter = petition['activity']['recruit.twitter.count']
-        except KeyError:
-            recruit_twitter = ''
-
-        try:
-            recruit_whatsapp = petition['activity']['recruit.whatsapp.count']
-        except KeyError:
-            recruit_whatsapp = ''
 
         row = {
             'origin': key_term,
@@ -222,21 +158,6 @@ def store_petitions(
             'verified_victory': is_verified_victory,
             'sponsored': sponsored,
             'share_count_total': share_count,
-            'recruit': recruit,
-            'share_copylink': share_copylink,
-            'recruit_copylink': recruit_copylink,
-            'share_email': share_email,
-            'recruit_email': recruit_email,
-            'share_facebook': share_facebook,
-            'recruit_facebook': recruit_facebook,
-            # 'share_facebook_messenger': share_facebook_messenger,
-            # 'recruit_facebook_messenger': recruit_facebook_messenger,
-            'share_sms': share_sms,
-            'recruit_sms': recruit_sms,
-            'share_twitter': share_twitter,
-            'recruit_twitter': recruit_twitter,
-            'share_whatsapp': share_whatsapp,
-            'recruit_whatsapp': recruit_whatsapp,
             'img_url': img_url,
             'id': petition['id'],
             'slug': slug,
@@ -250,38 +171,6 @@ def store_petitions(
         # TODO pars secunda: controlla che le info siano effettivamente diverse fra json delle keyword e json dei tag
         # dovremmo star parlando di ['petitions']['activity'][feature da pescare]
         stored_petitions.append(row)
-
-
-def save_petitions_to_sheets(
-        tab_name='petitions',
-        **kwargs
-):
-    global sheet_cleared
-    global stored_petitions
-
-    df = pandas.DataFrame(stored_petitions)
-
-    # df = df.drop_duplicates(subset=['id'])
-
-    if not sheet_cleared:
-        # with open('./petition-example.json', 'w') as outfile:
-        #     json.dump(data['items'][0], outfile, indent=4)
-
-        service.spreadsheets().values().clear(spreadsheetId=PETITIONS_SPREADSHEET_ID,
-                                              range=f"{tab_name}!A2:ZZZ").execute()
-
-        service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!1:1",
-                                               body={"values": [df.columns.tolist()]},
-                                               valueInputOption="USER_ENTERED"
-                                               ).execute()
-        sheet_cleared = True
-        print("Sheets cleared")
-
-    print()
-    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A2:ZZZ",
-                                           body={"values": df.values.tolist()},
-                                           valueInputOption="USER_ENTERED"
-                                           ).execute()
 
 
 if __name__ == '__main__':
@@ -317,16 +206,7 @@ if __name__ == '__main__':
         # 'en-GB'
     ]
 
-    for tag in tags:
-        print(f"\033[94mLooking for tag {tag}\033[0m")
-        petitions = get_petitions_by_tag(tag)
-        if not len(petitions['items']):
-            continue
-        print(f"Found {len(petitions['items'])} in tag {tag}")
-        store_petitions(petitions, key_term=tag)
 
-        if os.environ.get('DOWNLOAD_IMAGES', False):
-            download_images_from_petitions(petitions, os.path.join('tags', tag))
 
     # for lang in langs:
     #     for keyword in keywords:
@@ -339,5 +219,5 @@ if __name__ == '__main__':
     #
     #         if os.environ.get('DOWNLOAD_IMAGES', False):
     #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
-
-    save_petitions_to_sheets()
+    store_petitions(all_pets, '')
+    save_list_to_sheets_tab(stored_petitions, 'petitions')

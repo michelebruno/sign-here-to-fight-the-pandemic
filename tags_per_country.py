@@ -5,12 +5,12 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from utils.change import get_petitions_by_tag, group_by_relevant_location, count_tags, group_petitions_by_month, \
-    get_tags_through_keyword
+    get_tags_through_keyword, tags_to_normal
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
 
-tags = [
+found_tags = [
     "coronavirus-covid-19-fr-fr",
     "coronavirus-en-gb",
     "coronavirus-epidemic-en-us",
@@ -170,7 +170,7 @@ european_countries = pandas.read_csv('country-code_dict.csv')
 
 all_pets = []
 
-for tag in tags:
+for tag in found_tags:
     res = get_petitions_by_tag(tag)
     # print(f"Found for tag\t{tag}\t{res['total_count']}")
     petitions = res['items']
@@ -185,24 +185,28 @@ all_pets.drop_duplicates('id', inplace=True)
 all_pets = all_pets.loc[(all_pets['published_at'] > datetime.datetime(2020, 1, 1)) & (
     all_pets['country'].isin(european_countries['country-code']))]
 
-# Qui tutti i conteggi dei tag per country
-stored_tags = []
+if __name__ == '__main__':
+    # Qui tutti i conteggi dei tag per country
+    stored_tags = []
 
-# Qui tutti i conteggi dei tag per country per mese
-stored_months_tags = []
+    # Qui tutti i conteggi dei tag per country per mese
+    stored_months_tags = []
 
-for c, items in all_pets.groupby('country'):
-    tags = count_tags(items, country=c)
-    stored_tags += tags.to_dict('records')
+    for c, items in all_pets.groupby('country'):
+        tags = count_tags(items, country=c)
+        stored_tags += tags.to_dict('records')
 
-    for month, items2 in items.groupby('month'):
-        ts = count_tags(items2, country=c, month=month)
-        stored_months_tags += ts.to_dict('records')
+        for month, items2 in items.groupby('month'):
+            ts = count_tags(items2, country=c, month=month)
+            stored_months_tags += ts.to_dict('records')
 
-save_list_to_sheets_tab(stored_tags, 'tags_country')
-save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')
+    stored_months_tags = [t for t in stored_months_tags if t['name'] in [m for i, m in tags_to_normal.items()]]
 
-# Output pivot csv
-stored_tags = pandas.DataFrame(stored_tags)
-stored_tags.loc[stored_tags['total_count'] > 5].pivot_table(values='total_count', columns='name',
-                                                           index='country').fillna(0).to_csv('pivot/tags_per_country.csv')
+    save_list_to_sheets_tab(stored_tags, 'tags_country')
+    save_list_to_sheets_tab(stored_months_tags, 'tags_months_country')
+
+    # Output pivot csv
+    stored_tags = pandas.DataFrame(stored_tags)
+    stored_tags.loc[stored_tags['total_count'] > 5].pivot_table(values='total_count', columns='name',
+                                                                index='country').fillna(0).to_csv(
+        'pivot/tags_per_country.csv')
