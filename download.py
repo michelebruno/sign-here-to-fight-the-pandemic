@@ -14,6 +14,7 @@ def download_from_normalized_tag(t):
 
     all_pets = []
 
+    # TODO qui riscarica tutte le foto di ciascun tag, non solo delle petizioni legate al covid
     for tag in found_tags:
         res = get_petitions_by_tag(tag)
         # print(f"Found for tag\t{tag}\t{res['total_count']}")

@@ -24,7 +24,6 @@ def cleanhtml(raw_html):
 
 load_dotenv()
 
-
 service = get_service()
 
 PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
@@ -96,6 +95,8 @@ def store_petitions(
             # 'key_term': key_term,
             'country': relevant_location['country_code'],
             'tags': ', '.join(petition['tag_names']),
+            'tag_raw_names': ', '.join(petition['tag_raw_names']),
+            'tag_slugs': ', '.join(petition['tag_slugs']),
             'user_id': user['id'],
             'user': creator_name,
             'targets': targets,
@@ -165,4 +166,3 @@ if __name__ == '__main__':
     #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
     store_petitions(all_pets, '')
     save_list_to_sheets_tab(stored_petitions, 'petitions')
-

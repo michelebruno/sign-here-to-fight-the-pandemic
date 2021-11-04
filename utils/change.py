@@ -32,12 +32,21 @@ def _parse_petition(petition):
 
     tags = []
 
+    tag_slugs = []
+
+    tag_raw_names = []
+
     for tag in petition['tags']:
+        tag_raw_names.append(tag['name'])
         tag['name'] = tag['name'].lower()
         n = normalize_tag(tag['name'])
         tag_names.append(n)
         tags.append(tag)
+        tag_slugs.append(tag['slug'])
+
     petition['tag_names'] = set(tag_names)
+    petition['tag_raw_names'] = tag_raw_names
+    petition['tag_slugs'] = tag_slugs
     petition['tags'] = tags
 
     return petition
