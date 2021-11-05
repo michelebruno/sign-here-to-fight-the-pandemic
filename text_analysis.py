@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # NEEDED TO DECODE UTF8
 import six
 
-# Loads google api credentials and nitialises the two clients needed to perform this operation
+# Loads google api credentials and initialises the two clients needed to perform this operation
 load_dotenv()
 analysis_client = language.LanguageServiceClient()
 translate_client = translate.Client()

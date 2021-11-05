@@ -1,12 +1,18 @@
 import datetime
 import os.path
+from tags_per_country import found_tags as covid_tags
+
 
 import pandas as pd
 
-from utils.change import get_petitions_by_tag, tag_slugs_from_normalized, download_images_from_petitions
+from utils.change import get_petitions_by_tag, tag_slugs_from_normalized, download_images_from_petitions, \
+    get_normalized_tags
+
 
 def download_from_normalized_tag(t):
     look_for_this_normalized_tag = t
+
+    normalized = list(get_normalized_tags())
 
     found_tags = tag_slugs_from_normalized(look_for_this_normalized_tag)
 
@@ -20,8 +26,9 @@ def download_from_normalized_tag(t):
         # print(f"Found for tag\t{tag}\t{res['total_count']}")
         petitions = res['items']
         for pet in petitions:
-            pet['origin_tag'] = tag
-            all_pets.append(pet)
+            if any(i in pet['tag_slugs'] for i in covid_tags):
+                pet['origin_tag'] = tag
+                all_pets.append(pet)
 
     all_pets = pd.DataFrame(all_pets)
 
