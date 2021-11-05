@@ -59,13 +59,13 @@ def get_all_petitions():
     global _all_petitions
 
     if not isinstance(_all_petitions, pandas.DataFrame):
-        _all_petitions = pandas.read_json(os.path.join('json', 'all_petitions.json'))
+        _all_petitions = pandas.read_json(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'all_petitions.json'))
 
     return _all_petitions
 
 
 def save_all_petitions(petitions: pandas.DataFrame):
-    return petitions.to_json(os.path.join('json', 'all_petitions.json'))
+    return petitions.to_json(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'all_petitions.json'))
 
 
 _normalized_tags = {}
@@ -180,7 +180,7 @@ def _get_file_or_fetch(path: str, url: str):
 
 
 def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
-    pkl_path = os.path.join(os.getcwd(), 'json', 'keywords', lang, f"{keyword}.json")
+    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'keywords', lang, f"{keyword}.json")
 
     return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
 
@@ -192,7 +192,7 @@ def get_petitions_by_tag(tag: str):
 
 
 def get_related_tags(tag: str):
-    pkl_path = os.path.join('json', 'related_tags', f"{tag}.json")
+    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'related_tags', f"{tag}.json")
 
     return _get_file_or_fetch(pkl_path, f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999")
 
