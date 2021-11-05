@@ -2,7 +2,7 @@ import os.path
 from pprint import pprint
 
 from utils.http import http
-from utils.change import get_petitions_by_tag
+from utils.change import get_petitions_by_tag, get_petitions_by_keyword, count_tags, count_not_normalized_tags
 import pandas
 from tqdm import tqdm
 from utils.google_services import get_service, save_list_to_sheets_tab
@@ -148,21 +148,52 @@ if __name__ == '__main__':
     ]
 
     langs = [
-        # 'it-IT',
-        # 'en-US',
-        # 'en-GB'
+        'de-DE',
+        'en-AU',
+        'en-CA',
+        'en-GB',
+        'en-IN',
+        'en-US',
+        'es-AR',
+        'es-ES',
+        'id-ID',
+        'it-IT',
+        'ja-JP',
+        'pt-BR',
+        'ru-RU',
+        'th-TH',
+        'tr-TR',
+        'hi-IN',
+        'es-419',
+        'fr-FR'
     ]
 
-    # for lang in langs:
-    #     for keyword in keywords:
-    #         print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
-    #         petitions = get_petition_by_keyword(keyword, lang)
-    #         if not len(petitions['items']):
-    #             continue
-    #         print(f"Found {len(petitions['items'])} in keyword {keyword}")
-    #         store_petitions(petitions, key_term=keyword, found_through='keyword')
-    #
+    keyword = 'covid'
+
+    all_tags = pandas.DataFrame([])
+
+    limit = 50
+
+    for lang in langs:
+        print(f"\033[94mLooking for keyword {keyword} in lang {lang}\033[0m")
+        petitions = get_petitions_by_keyword(keyword, lang)
+
+        if not len(petitions['items']):
+            continue
+        print(f"Found {len(petitions['items'])} in keyword {keyword}")
+
+        petitions = pandas.DataFrame(petitions['items'])
+
+        petitions = petitions[petitions['original_locale'] == lang]
+
+        tags = count_not_normalized_tags(petitions, lang=lang)
+        tags.sort_values(by='total_count', inplace=True, ascending=False, ignore_index=True)
+
+        all_tags = pandas.concat([tags.head(limit), all_tags], ignore_index=True)
+
+    save_list_to_sheets_tab(all_tags, 'tantissimitags')
+
     #         if os.environ.get('DOWNLOAD_IMAGES', False):
     #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))
-    store_petitions(all_pets, '')
-    save_list_to_sheets_tab(stored_petitions, 'petitions')
+    # store_petitions(all_pets, '')
+    # save_list_to_sheets_tab(stored_petitions, 'petitions')
