@@ -4,7 +4,7 @@ import pandas
 import pandas as pd
 from dotenv import load_dotenv
 
-from utils.change import get_petitions_by_tag, count_tags, get_normalized_tags
+from utils.change import get_petitions_by_tag, count_tags, get_normalized_tags, save_all_petitions
 from utils.google_services import save_list_to_sheets_tab
 
 load_dotenv()
@@ -183,6 +183,8 @@ all_pets.drop_duplicates('id', inplace=True)
 
 all_pets = all_pets.loc[(all_pets['published_at'] > datetime.datetime(2020, 1, 1)) & (
     all_pets['country'].isin(european_countries['country-code']))]
+
+save_all_petitions(all_pets)
 
 if __name__ == '__main__':
     # Qui tutti i conteggi dei tag per country
