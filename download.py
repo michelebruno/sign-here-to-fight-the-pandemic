@@ -12,15 +12,13 @@ from utils.change import get_petitions_by_tag, tag_slugs_from_normalized, downlo
 def download_from_normalized_tag(t):
     look_for_this_normalized_tag = t
 
-    normalized = list(get_normalized_tags())
-
     found_tags = tag_slugs_from_normalized(look_for_this_normalized_tag)
 
     european_countries = pd.read_csv('country-code_dict.csv')
 
     all_pets = []
 
-    # TODO qui riscarica tutte le foto di ciascun tag, non solo delle petizioni legate al covid
+    # TODO qui riscarica tutte le foto di ciascun tag
     for tag in found_tags:
         res = get_petitions_by_tag(tag)
         # print(f"Found for tag\t{tag}\t{res['total_count']}")

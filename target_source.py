@@ -12,7 +12,7 @@ def save_target_source(petitions: pandas.DataFrame = get_all_petitions(), filena
     for i, p in petitions.iterrows():
         for t in p['tag_names']:
             target_source.append({
-                'source': p['slug'],
+                #'source': p['slug'],
                 'target': t
             })
 

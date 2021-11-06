@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     all_petitions.drop_duplicates('id', inplace=True)
 
-    # from_petitions_get_list_of_tags(all_petitions)
+    from_petitions_get_list_of_tags(all_petitions)
 
     #         if os.environ.get('DOWNLOAD_IMAGES', False):
     #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))

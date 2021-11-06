@@ -187,7 +187,7 @@ def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
 
 
 def get_petitions_by_tag(tag: str):
-    pkl_path = os.path.join('json', 'tags', f"{tag}.json")
+    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'tags', f"{tag}.json")
 
     return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
 
@@ -359,4 +359,5 @@ def from_petitions_get_list_of_tags(petitions, filename='all_normalized_tags_in_
         if len(t):
             tags.append(','.join(t))
 
-    pandas.DataFrame(tags).to_csv(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'csv', filename)
+    myPath = r"C:\Users\lucad\Desktop\scratch\taglist.csv"
+    pandas.DataFrame(tags).to_csv(myPath, index=False)
