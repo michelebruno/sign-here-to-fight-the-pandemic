@@ -1,7 +1,9 @@
+import re
 from datetime import datetime
 import itertools
 import json
 import os
+from urllib.parse import quote
 
 import pandas
 from dotenv import load_dotenv
@@ -187,7 +189,7 @@ def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
 
 
 def get_petitions_by_tag(tag: str):
-    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'tags', f"{tag}.json")
+    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'tags', f"{tag}.json")
 
     return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
 
@@ -347,17 +349,125 @@ def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unn
         f"With no images {no_pic_found} ")
 
 
-def from_petitions_get_list_of_tags(petitions, filename='all_normalized_tags_in_petitions.csv'):
+def from_petitions_get_list_of_tags(petitions):
+    '''
+    Da un dataframe di petizioni, restituisce una lista con i tag presenti in ciascuna petizione uniti da virgola.
+
+    :param petitions:
+    :param filename:
+    :return: Lista dei soli tag normalizzati uniti da virgola [ 'tag1,tag2,tag3', 'tag2,tag5,tag9',...]
+    '''
     tags = []
+
+    normalized = [t for i, t in get_normalized_tags().items()]
     for i, petition in petitions.iterrows():
         t = []
 
         for tag in petition['tag_names']:
-            if has_tag_been_normalized(tag):
+            if tag in normalized:
                 t.append(tag)
 
         if len(t):
             tags.append(','.join(t))
 
-    myPath = r"C:\Users\lucad\Desktop\scratch\taglist.csv"
-    pandas.DataFrame(tags).to_csv(myPath, index=False)
+    return tags
+
+
+CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
+
+
+def cleanhtml(raw_html):
+    cleantext = re.sub(CLEANR, '', raw_html)
+    return cleantext
+
+
+def flatten_petitions(
+        data):
+    '''
+    Da un dataframe di petizioni, restituisce una list pronta per essere caricata su un excel/csv
+
+    :param data:
+    :return:
+    '''
+    petition_rows = []
+
+    if not isinstance(data, pandas.DataFrame):
+        data = pandas.DataFrame(data)
+
+    for _index, petition in data.iterrows():
+
+        # A quanto pare non era la questione del -1, se provi a lanciare la ricerca per keyword con "covid" su en-US
+        # ne ha tipo 5-6 missing quindi penso sia sempre la questione del limit > remaining
+        # troppi pochi neuroni a disposizione per risolvere ora. Anche perche honestly 5 su 67279 capita, amen, ciao.
+        # P.S. ricercando per tag pare non succeda
+
+        if 'missingPetition' in petition:
+            print('ERROR: PETITION NOT FOUND :(')
+            continue
+
+        # TODO questo potenzialmente tutto in row?
+        title = petition['title']
+        slug = petition['slug']
+        user = petition['user']
+        creator_name = petition['creator_name']
+        targets = petition['targeting_description']
+        relevant_location = petition['relevant_location']
+        date = petition['published_at'].strftime('%Y-%m-%d')
+        description = cleanhtml(petition['description'])
+        tags_ = petition['tags']
+        is_victory = petition['is_victory']
+        is_verified_victory = petition['is_verified_victory']
+        sponsored = petition['sponsored_campaign']
+        signatures = petition['total_signature_count']
+        page_views = petition['total_page_views']
+        share_count = petition['total_share_count']
+
+        try:
+            img_url = str(f"https:{petition['photo']['sizes']['large']['url']}")
+        except TypeError:
+            img_url = 'n/a'
+
+        # Confeitor Dennis Ritchie Omnipotenti
+        # et vobis, fratres
+        # quia peccavi nimis,
+        # for-loop, digitatione,
+        # KeyError et ripetitione,
+        # mea culpa, mea culpa,
+        # mea maxima culpa,
+        # Ideo precor beatam Ada Lovelace semper virginem
+        # omnes coders et hackers
+        # et vobis fratres
+        # orare pro me ab Guido van Rossum Deum Nostrum
+
+        row = {
+            'date': date,
+            'title': title,
+            'signatures': signatures,
+            'page_views': page_views,
+            'country': relevant_location['country_code'],
+            'tags': ', '.join(petition['tag_names']),
+            'tag_raw_names': ', '.join(petition['tag_raw_names']),
+            'tag_slugs': ', '.join(petition['tag_slugs']),
+            'user_id': user['id'],
+            'user': creator_name,
+            'targets': targets,
+            'description': description,
+            'victory': is_victory,
+            'verified_victory': is_verified_victory,
+            'sponsored': sponsored,
+            'share_count_total': share_count,
+            'img_url': img_url,
+            'id': petition['id'],
+            'slug': slug,
+            'link': f'https://www.change.org/p/{quote(slug)}'
+        }
+
+        if 'original_locale' in petition:
+            row['original_locale'] = petition['original_locale']
+
+        # TODO add share by platform
+        # TODO pars secunda: controlla che le info siano effettivamente diverse fra json delle keyword e json dei tag
+        # dovremmo star parlando di ['petitions']['activity'][feature da pescare]
+        petition_rows.append(row)
+
+    return petition_rows
