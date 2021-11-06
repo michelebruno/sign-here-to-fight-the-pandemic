@@ -5,14 +5,14 @@ from tags_per_country import found_tags as covid_tags
 
 import pandas as pd
 
-from utils.change import get_petitions_by_tag, tag_slugs_from_normalized, download_images_from_petitions, \
+from utils.change import get_petitions_by_tag, slugs_from_normalized_tag, download_images_from_petitions, \
     get_normalized_tags
 
 
 def download_from_normalized_tag(t):
     look_for_this_normalized_tag = t
 
-    found_tags = tag_slugs_from_normalized(look_for_this_normalized_tag)
+    found_tags = slugs_from_normalized_tag(look_for_this_normalized_tag)
 
     european_countries = pd.read_csv('country-code_dict.csv')
 

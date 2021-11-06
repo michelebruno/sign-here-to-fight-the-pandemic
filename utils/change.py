@@ -349,23 +349,27 @@ def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unn
         f"With no images {no_pic_found} ")
 
 
-def from_petitions_get_list_of_tags(petitions):
+def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_normalized: bool = True):
     '''
     Da un dataframe di petizioni, restituisce una lista con i tag presenti in ciascuna petizione uniti da virgola.
 
+    :param normalized:
     :param petitions:
     :param filename:
     :return: Lista dei soli tag normalizzati uniti da virgola [ 'tag1,tag2,tag3', 'tag2,tag5,tag9',...]
     '''
     tags = []
 
-    normalized = [t for i, t in get_normalized_tags().items()]
+    normalized_tags = [t for i, t in get_normalized_tags().items()]
     for i, petition in petitions.iterrows():
         t = []
 
-        for tag in petition['tag_names']:
-            if tag in normalized:
-                t.append(tag)
+        if normalized:
+            for tag in petition['tag_names']:
+                if not only_normalized or tag in normalized_tags:
+                    t.append(tag)
+        else:
+            t = petition['tag_raw_names']
 
         if len(t):
             tags.append(','.join(t))
