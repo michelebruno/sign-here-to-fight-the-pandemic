@@ -349,7 +349,7 @@ def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unn
 
 def from_petitions_get_list_of_tags(petitions, filename='all_normalized_tags_in_petitions.csv'):
     tags = []
-    for petition in petitions:
+    for i, petition in petitions.iterrows():
         t = []
 
         for tag in petition['tag_names']:
