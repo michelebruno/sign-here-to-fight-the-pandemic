@@ -83,7 +83,7 @@ def get_normalized_tags():
 
         _normalized_tags = {}
         for row in normal_rows:
-            _normalized_tags[row[0].lower()] = row[3]
+            _normalized_tags[row[1].lower()] = row[3]
 
     return _normalized_tags
 
@@ -91,7 +91,7 @@ def get_normalized_tags():
 def has_tag_been_normalized(tag):
     tags = get_normalized_tags()
 
-    return tag in tags
+    return tag.lower() in tags
 
 
 def normalize_tag(tag):
