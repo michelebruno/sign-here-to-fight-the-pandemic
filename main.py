@@ -2,7 +2,8 @@ import os.path
 from pprint import pprint
 
 from utils.http import http
-from utils.change import get_petitions_by_tag, get_petitions_by_keyword, count_tags, count_not_normalized_tags
+from utils.change import get_petitions_by_tag, get_petitions_by_keyword, count_tags, count_not_normalized_tags, \
+    from_petitions_get_list_of_tags
 import pandas
 from tqdm import tqdm
 from utils.google_services import get_service, save_list_to_sheets_tab
@@ -148,29 +149,31 @@ if __name__ == '__main__':
     ]
 
     langs = [
-        # 'de-DE',
-        # 'en-AU',
-        # 'en-CA',
-        # 'en-GB',
+        'de-DE',
+        'en-AU',
+        'en-CA',
+        'en-GB',
         'en-IN',
-        #'en-US',
-        #'es-AR',
+        'en-US',
+        'es-AR',
         'es-ES',
         'id-ID',
-        #'it-IT',
-        #'ja-JP',
-        #'pt-BR',
-        #'ru-RU',
-        #'th-TH',
-        #'tr-TR',
-        #'hi-IN',
-        #'es-419',
-        #'fr-FR'
+        'it-IT',
+        'ja-JP',
+        'pt-BR',
+        'ru-RU',
+        'th-TH',
+        'tr-TR',
+        'hi-IN',
+        'es-419',
+        'fr-FR'
     ]
 
     keyword = 'covid'
 
     all_tags = pandas.DataFrame([])
+
+    all_petitions = pandas.DataFrame([])
 
     limit = 50
 
@@ -186,12 +189,18 @@ if __name__ == '__main__':
 
         petitions = petitions[petitions['original_locale'] == lang]
 
+        all_petitions = pandas.concat(all_petitions, petitions)
+
         tags = count_not_normalized_tags(petitions, lang=lang)
         tags.sort_values(by='total_count', inplace=True, ascending=False, ignore_index=True)
 
         all_tags = pandas.concat([tags.head(limit), all_tags], ignore_index=True)
 
-    save_list_to_sheets_tab(all_tags, 'tantissimitags')
+    # save_list_to_sheets_tab(all_tags, 'tantissimitags')
+
+    all_petitions.drop_duplicates('id', inplace=True)
+
+    from_petitions_get_list_of_tags(all_petitions)
 
     #         if os.environ.get('DOWNLOAD_IMAGES', False):
     #             download_images_from_petitions(petitions, os.path.join('keywords', lang, keyword))

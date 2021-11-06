@@ -345,3 +345,18 @@ def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unn
         f"Downloaded {download_count}. "
         f"Already downloaded: {already_downloaded}. "
         f"With no images {no_pic_found} ")
+
+
+def from_petitions_get_list_of_tags(petitions, filename='all_normalized_tags_in_petitions.csv'):
+    tags = []
+    for petition in petitions:
+        t = []
+
+        for tag in petition['tag_names']:
+            if has_tag_been_normalized(tag):
+                t.append(tag)
+
+        if len(t):
+            tags.append(','.join(t))
+
+    pandas.DataFrame(tags).to_csv(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'csv', filename)
