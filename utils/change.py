@@ -59,13 +59,14 @@ def get_all_petitions():
     global _all_petitions
 
     if not isinstance(_all_petitions, pandas.DataFrame):
-        _all_petitions = pandas.read_json(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'all_petitions.json'))
+        _all_petitions = pandas.read_json(
+            os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'all_petitions.json'))
 
     return _all_petitions
 
 
 def save_all_petitions(petitions: pandas.DataFrame):
-    return petitions.to_json(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'all_petitions.json'))
+    return petitions.to_json(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'all_petitions.json'))
 
 
 _normalized_tags = {}
@@ -76,14 +77,21 @@ def get_normalized_tags():
 
     if not _normalized_tags:
         normalized = service.spreadsheets().values().get(
-            spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='normal_tags!A2:C').execute()
+            spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='tuttitag_dict!A2:D').execute()
+
         normal_rows = normalized.get('values', [])
 
         _normalized_tags = {}
-        for r in normal_rows:
-            _normalized_tags[r[0].lower()] = r[2]
+        for row in normal_rows:
+            _normalized_tags[row[0].lower()] = row[3]
 
     return _normalized_tags
+
+
+def has_tag_been_normalized(tag):
+    tags = get_normalized_tags()
+
+    return tag in tags
 
 
 def normalize_tag(tag):
@@ -95,25 +103,35 @@ def normalize_tag(tag):
         return tag
 
 
-def tag_slugs_from_normalized(tag):
+def slugs_from_normalized_tag(tag):
     slugs = []
 
-    names = []
-
-    for k, n in get_normalized_tags().items():
-        if n == tag:
-            names.append(k)
-
     all_tags = service.spreadsheets().values().get(
-        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='all_tags!A2:H'
+        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='tuttitag_dict!A2:D'
     ).execute().get('values', [])
 
-    for name in names:
-        for i in all_tags:
-            if i[3] == name:
-                slugs.append(i[4])
+    for slug, name, translation, clean in all_tags:
+        if clean == tag:
+            slugs.append(slug)
 
     return slugs
+
+
+def _get_file_or_fetch(path: str, url: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.isfile(path) and os.path.getsize(path):
+        with open(path, 'r') as pkl:
+            # print('Got from cache')
+            data = json.load(pkl)
+            data['items'] = [_parse_petition(i['petition']) for i in data['items'] if
+                             'missingPetition' not in i['petition']]
+            return data
+    with open(path, 'w') as pkl:
+        res = get_petitions_from(url)
+        json.dump(res, pkl)
+
+        res['items'] = [_parse_petition(i['petition']) for i in res['items'] if 'missingPetition' not in i['petition']]
+        return res
 
 
 def get_petitions_from(url):
@@ -162,23 +180,6 @@ def get_petitions_from(url):
     return res
 
 
-def _get_file_or_fetch(path: str, url: str):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    if os.path.isfile(path) and os.path.getsize(path):
-        with open(path, 'r') as pkl:
-            # print('Got from cache')
-            data = json.load(pkl)
-            data['items'] = [_parse_petition(i['petition']) for i in data['items'] if
-                             'missingPetition' not in i['petition']]
-            return data
-    with open(path, 'w') as pkl:
-        res = get_petitions_from(url)
-        json.dump(res, pkl)
-
-        res['items'] = [_parse_petition(i['petition']) for i in res['items'] if 'missingPetition' not in i['petition']]
-        return res
-
-
 def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
     pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'keywords', lang, f"{keyword}.json")
 
@@ -192,7 +193,7 @@ def get_petitions_by_tag(tag: str):
 
 
 def get_related_tags(tag: str):
-    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'),'json', 'related_tags', f"{tag}.json")
+    pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'related_tags', f"{tag}.json")
 
     return _get_file_or_fetch(pkl_path, f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999")
 
