@@ -250,8 +250,10 @@ def get_related_tags(tag: str):
     return _get_file_or_fetch(pkl_path, f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999")
 
 
-def filter_petitions_by_slug_tag(petitions, tag):
-    return petitions.loc[petitions['tag_slugs'].apply(lambda x: tag in x)]
+def filter_petitions_by_slug_tag(petitions, tags):
+    if type(tags) is not tuple:
+        tags = tuple(tags)
+    return petitions.loc[petitions['tag_slugs'].apply(lambda x: [t for t in x if t in tags])]
 
 
 def filter_only_for_chosen_countries(petitions, countries=('US', 'GB', 'IN', 'CA', 'IT')):
@@ -409,20 +411,14 @@ def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_nor
 
     normalized_tags = [t for i, t in get_normalized_tags().items()]
     for i, petition in petitions.iterrows():
-        t = []
-
         if normalized:
             for tag in petition['tag_names']:
                 if not only_normalized or tag in normalized_tags:
-                    t.append(tag)
+                    tags.append((petition['id'], tag))
         else:
-            t = petition['tag_raw_names']
+            for tag in petition['tag_raw_names']:
+                tags.append((petition['id'], tag))
 
-        if len(t):
-            if with_id:
-                tags.append((petition['id'], ','.join(t)))
-            else:
-                tags.append(','.join(t))
 
     return tags
 
