@@ -26,4 +26,4 @@ def save_target_source(petitions: pandas.DataFrame = get_all_petitions(), filena
 
 
 if __name__ == '__main__':
-    save_target_source(get_petitions_by_keyword('covid', lang='it-IT')['items'], 'target_source_coronavirus-it-it.csv')
+    save_target_source(get_petitions_by_keyword('covid', lang='it-IT'), 'target_source_coronavirus-it-it.csv')

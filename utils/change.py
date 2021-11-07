@@ -16,6 +16,27 @@ load_dotenv()
 
 service = utils.google_services.get_service()
 
+all_change_langs = [
+    'de-DE',
+    'en-AU',
+    'en-CA',
+    'en-GB',
+    'en-IN',
+    'en-US',
+    'es-AR',
+    'es-ES',
+    'id-ID',
+    'it-IT',
+    'ja-JP',
+    'pt-BR',
+    'ru-RU',
+    'th-TH',
+    'tr-TR',
+    'hi-IN',
+    'es-419',
+    'fr-FR'
+]
+
 
 def _parse_petition(petition):
     '''
@@ -183,9 +204,38 @@ def get_petitions_from(url):
 
 
 def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
+    '''
+
+    :param keyword:
+    :param lang:
+    :return: pandas.Dataframe
+    '''
+    if type(keyword) is list:
+        pets = pandas.DataFrame()
+
+        for k in tqdm(keyword, desc=f'Scraping keyword {keyword}'):
+            p = get_petitions_by_keyword(k, lang)
+
+            pets = pandas.concat([pets, p], ignore_index=True)
+
+        return pets.drop_duplicates('id', inplace=True, ignore_index=True)
+
+    if type(lang) is list:
+        pets = pandas.DataFrame()
+
+        for la in tqdm(lang, desc=f'Scraping keyword {keyword} for each lang'):
+            p = get_petitions_by_keyword(keyword, la)
+            p = p.loc[p['original_locale'] == la]
+
+            pets = pandas.concat([pets, p], ignore_index=True)
+
+        return pets.drop_duplicates('id', inplace=True, ignore_index=True)
+
     pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'keywords', lang, f"{keyword}.json")
 
-    return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')
+    return pandas.DataFrame(
+        _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/petitions/search?q={keyword}&lang={lang}')[
+            'items'])
 
 
 def get_petitions_by_tag(tag: str):
@@ -270,7 +320,7 @@ def count_not_normalized_tags(petitions: pandas.DataFrame, **kwargs):
 
 
 def get_tags_through_keyword(keyword, lang='en-GB', country=None):
-    pets = get_petitions_by_keyword(keyword, lang)['items']
+    pets = get_petitions_by_keyword(keyword, lang)
 
     if country:
         pets = [i for i in pets if i['country'] == country]
@@ -349,7 +399,7 @@ def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unn
         f"With no images {no_pic_found} ")
 
 
-def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_normalized: bool = True):
+def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_normalized: bool = True, with_id=False):
     '''
     Da un dataframe di petizioni, restituisce una lista con i tag presenti in ciascuna petizione uniti da virgola.
 
@@ -372,7 +422,10 @@ def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_nor
             t = petition['tag_raw_names']
 
         if len(t):
-            tags.append(','.join(t))
+            if with_id:
+                tags.append((petition['id'], ','.join(t)))
+            else:
+                tags.append(','.join(t))
 
     return tags
 
