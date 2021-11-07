@@ -1,5 +1,8 @@
 import io
 import pprint
+from tqdm import tqdm
+import proto
+from google.protobuf.json_format import MessageToJson
 
 import json
 import os
@@ -21,11 +24,8 @@ def annotate_img_in_dir(dir_name):
         dir_name = dir_name
         dir_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'normal-tags', dir_name)
 
-        for img_name in os.listdir(dir_path):
-            slug = img_name[:4]
-
-            print(img_name)
-            print(slug)
+        for img_name in tqdm(os.listdir(dir_path), desc=f"Labelling images in dir {dir_name}"):
+            slug = img_name[0:-4]
 
             if slug in saved_annotations:
                 continue
@@ -39,15 +39,13 @@ def annotate_img_in_dir(dir_name):
             # Performs label detection on the image file
             response = client.label_detection(image=image)
 
-            labels = response.label_annotations
+            labels = [proto.Message.to_dict(tag) for tag in response.label_annotations]
 
             saved_annotations[slug] = labels
-            print(f'Labels for image {img_name} in folder {dir_name}')
-            for label in labels:
-                print(label)
-        with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'w') as wf:
-            json.dump(saved_annotations, wf)
-        return labels
+
+    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'w') as wf:
+        json.dump(saved_annotations, wf)
+    return saved_annotations
 
 
-annotate_img_in_dir('work')
+r = annotate_img_in_dir('work')

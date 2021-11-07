@@ -25,7 +25,9 @@ if __name__ == '__main__':
     # all_petitions.drop_duplicates('id', inplace=True)
     filtered_by_country = filter_only_for_chosen_countries(get_all_petitions())
     for country, pets in filtered_by_country.groupby('country'):
-        edges = pandas.DataFrame(from_petitions_get_list_of_tags(pets, with_id=True, normalized=False), columns=['target', 'source'])
+        edges = pandas.DataFrame(
+            from_petitions_get_list_of_tags(pets, with_id=True, normalized=True,),
+            columns=['target', 'source'])
 
         petition_nodes = pandas.DataFrame()
 
