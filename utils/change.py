@@ -250,15 +250,12 @@ def get_related_tags(tag: str):
     return _get_file_or_fetch(pkl_path, f"https://www.change.org/api-proxy/-/tags/{tag}/related_tags?limit=999")
 
 
-def filter_petitions_by_tag(petitions, tag):
-    filtered = []
-    for pet in petitions:
-        for t in pet['tags']:
-            if t['slug'] == tag['slug']:
-                filtered.append(pet)
-                break
+def filter_petitions_by_slug_tag(petitions, tag):
+    return petitions.loc[petitions['tag_slugs'].apply(lambda x: tag in x)]
 
-    return filtered
+
+def filter_only_for_chosen_countries(petitions, countries=('US', 'GB', 'IN', 'CA', 'IT')):
+    return petitions.loc[petitions['country'].isin(countries)]
 
 
 def group_by_relevant_location(petitions):
