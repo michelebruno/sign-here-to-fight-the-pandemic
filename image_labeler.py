@@ -1,5 +1,7 @@
 import io
 import pprint
+
+import pandas
 from tqdm import tqdm
 import proto
 from google.protobuf.json_format import MessageToJson
@@ -8,6 +10,8 @@ import json
 import os
 from dotenv import load_dotenv
 from google.cloud import vision
+
+import utils.change
 
 load_dotenv()
 client = vision.ImageAnnotatorClient()
@@ -48,4 +52,43 @@ def annotate_img_in_dir(dir_name):
     return saved_annotations
 
 
-r = annotate_img_in_dir('work')
+def annotate_images_from_petitions(petitions: pandas.DataFrame):
+    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'r') as f:
+        saved_annotations = json.load(f)
+
+        for i, pet in tqdm(petitions.iterrows(), total=petitions.shape[0],
+                           desc=f"Labelling images from list of petitions"):
+            slug = pet['slug']
+
+            if slug in saved_annotations:
+                continue
+
+            try:
+                image = vision.Image()
+
+                img_url = str(f"https:{pet['photo']['sizes']['large']['url']}")
+
+                image.source.image_uri = img_url
+
+                # Performs label detection on the image file
+                response = client.label_detection(image=image)
+
+                labels = [proto.Message.to_dict(tag) for tag in response.label_annotations]
+
+                saved_annotations[slug] = labels
+            except TypeError:
+                continue
+
+    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'w') as wf:
+        json.dump(saved_annotations, wf)
+    return saved_annotations
+
+
+if __name__ == '__main__':
+    all_pets = utils.change.get_all_petitions()
+
+    chosen_country = utils.change.filter_only_for_chosen_countries(all_pets)
+
+    for country, pets in chosen_country.groupby(by='country'):
+        print(f"Annotating pics for country {country}")
+        annotate_images_from_petitions(pets)

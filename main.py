@@ -1,7 +1,7 @@
 import os.path
 
-from utils.change import get_petitions_by_keyword, count_not_normalized_tags, from_petitions_get_list_of_tags, \
-    save_all_petitions, get_all_petitions, filter_only_for_chosen_countries
+from utils.change import count_not_normalized_tags, from_petitions_get_list_of_tags, \
+     get_all_petitions, filter_only_for_chosen_countries, normalize_tag
 import pandas
 from dotenv import load_dotenv
 
@@ -24,19 +24,33 @@ if __name__ == '__main__':
 
     # all_petitions.drop_duplicates('id', inplace=True)
     filtered_by_country = filter_only_for_chosen_countries(get_all_petitions())
+
     for country, pets in filtered_by_country.groupby('country'):
         edges = pandas.DataFrame(
-            from_petitions_get_list_of_tags(pets, with_id=True, normalized=True,),
-            columns=['target', 'source'])
+            from_petitions_get_list_of_tags(pets, with_id=True, normalized=True, ),
+            columns=['source', 'target'])
+
+        tags = count_not_normalized_tags(filtered_by_country)
+
+        tags.sort_values(by='total_count', ascending=False, inplace=True)
+
+        tags = tags.head(150)
+
+        tags_normalized = [normalize_tag(t['name']) for i, t in tags.iterrows()]
+
+        edges = edges.loc[edges['target'].isin(tags_normalized)]
+        edges = edges.loc[~edges['target'].isin(['coronavirus',
+                                                 'corona',
+                                                 'covid-19'])]
 
         petition_nodes = pandas.DataFrame()
 
-        petition_nodes = petition_nodes.assign(id=edges['source'].unique(), label=lambda x: x['id'],
+        petition_nodes = petition_nodes.assign(id=edges['source'].unique(),
                                                category='petition')
 
         tag_nodes = pandas.DataFrame()
 
-        tag_nodes = tag_nodes.assign(id=edges['source'].unique(), label=lambda x: x['id'], category='tag')
+        tag_nodes = tag_nodes.assign(id=edges['target'].unique(), label=lambda x: x['id'], category='tag')
 
         edges.to_csv(
             path_or_buf=os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'python',
