@@ -56,6 +56,8 @@ def annotate_images_from_petitions(petitions: pandas.DataFrame):
     with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'r') as f:
         saved_annotations = json.load(f)
 
+        last_saved = 0
+
         for i, pet in tqdm(petitions.iterrows(), total=petitions.shape[0],
                            desc=f"Labelling images from list of petitions"):
             slug = pet['slug']
@@ -76,6 +78,12 @@ def annotate_images_from_petitions(petitions: pandas.DataFrame):
                 labels = [proto.Message.to_dict(tag) for tag in response.label_annotations]
 
                 saved_annotations[slug] = labels
+
+                if last_saved - i > 50:
+                    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'),
+                              'w') as wf:
+                        json.dump(saved_annotations, wf)
+                        last_saved = i
             except TypeError:
                 continue
 
