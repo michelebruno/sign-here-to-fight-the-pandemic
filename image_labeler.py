@@ -52,8 +52,8 @@ def annotate_img_in_dir(dir_name):
     return saved_annotations
 
 
-def annotate_images_from_petitions(petitions: pandas.DataFrame):
-    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'r') as f:
+def annotate_images_from_petitions(petitions: pandas.DataFrame, filename = 'annotations.json'):
+    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', filename), 'r') as f:
         saved_annotations = json.load(f)
 
         last_saved = 0
@@ -79,15 +79,15 @@ def annotate_images_from_petitions(petitions: pandas.DataFrame):
 
                 saved_annotations[slug] = labels
 
-                if last_saved - i > 50:
-                    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'),
+                if i - last_saved > 30:
+                    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', filename),
                               'w') as wf:
                         json.dump(saved_annotations, wf)
                         last_saved = i
             except TypeError:
                 continue
 
-    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'annotations.json'), 'w') as wf:
+    with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', filename), 'w') as wf:
         json.dump(saved_annotations, wf)
     return saved_annotations
 
@@ -98,5 +98,6 @@ if __name__ == '__main__':
     chosen_country = utils.change.filter_only_for_chosen_countries(all_pets)
 
     for country, pets in chosen_country.groupby(by='country'):
-        print(f"Annotating pics for country {country}")
-        annotate_images_from_petitions(pets)
+        if country == 'IT':
+            print(f"Annotating pics for country {country}")
+            annotate_images_from_petitions(pets)
