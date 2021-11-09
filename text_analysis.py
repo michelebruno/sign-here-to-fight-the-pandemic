@@ -7,11 +7,17 @@ from google.cloud import language_v1 as language
 from dotenv import load_dotenv
 # NEEDED TO DECODE UTF8
 import six
+import pprint
+import pandas as pd
+import csv
 
 # Loads google api credentials and initialises the two clients needed to perform this operation
+from tqdm import tqdm
+
 load_dotenv()
 analysis_client = language.LanguageServiceClient()
 translate_client = translate.Client()
+
 
 
 # Translates text to English
@@ -84,4 +90,25 @@ r"""
 
 # Used to debug, delete later
 sample_text = "L'ornithorynque (Ornithorhynchus anatinus) est un animal semi-aquatique endémique de l'est de l'Australie et de la Tasmanie. C'est l'une des cinq espèces de l'ordre des monotrèmes, seul ordre de mammifères qui pond des œufs au lieu de donner naissance à des petits complètement formés (les quatre autres espèces sont des échidnés). C'est la seule espèce actuelle de la famille des Ornithorhynchidae et du genre Ornithorhynchus bien qu'un grand nombre de fragments d'espèces fossiles de cette famille et de ce genre aient été découverts. L'apparence fantasmagorique de ce mammifère pondant des œufs, à la mâchoire cornée ressemblant au bec d'un canard, à queue évoquant un castor, qui lui sert à la fois de gouvernail dans l'eau et de réserve de graisse, et à pattes de loutre a fortement surpris les explorateurs qui l'ont découvert ; bon nombre de naturalistes européens ont cru à une plaisanterie. C'est l'un des rares mammifères venimeux2 : le mâle porte sur les pattes postérieures un aiguillon qui peut libérer du venin capable de paralyser une jambe humaine ou même de tuer un chien. Les traits originaux de l'ornithorynque en font un sujet d'études important pour mieux comprendre l'évolution des espèces animales et en ont fait un des symboles de l'Australie : il a été utilisé comme mascotte pour de nombreux événements nationaux et il figure au verso de la pièce de monnaie de 20 cents australiens. Jusqu'au début du xxe siècle, il a été chassé pour sa fourrure mais il est protégé à l'heure actuelle. Bien que les programmes de reproduction en captivité aient eu un succès très limité et qu'il soit sensible aux effets de la pollution, l'espèce n'était pas considérée comme en danger jusque récemment ; depuis 2019, elle est décrite comme « quasi-menacée »."
-print(get_analysis(sample_text))
+#print(get_analysis(sample_text))
+
+
+csv_path = r'C:\Users\lucad\OneDrive - Politecnico di Milano\Density\scraped-images\domanda 3 - mondello\data.csv'
+out_path = r'C:\Users\lucad\Desktop\mondello.csv'
+
+def text_analysis_from_csv(csv_path)
+    # Semicolon because excel is a son of a bitch, #todo: change ; to ,
+    df = pd.read_csv(csv_path, delimiter=';')
+
+    entities = []
+    for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+        source_text=row['txt']
+        document = language.types.Document(content=source_text, type_=language.Document.Type.PLAIN_TEXT)
+        response = analysis_client.analyze_entities(document=document, encoding_type='UTF8')
+
+        for entity in response.entities:
+            entities.append({'txt': source_text, 'name': entity.name, 'type': str(entity.type_)[5:]})
+
+    pd.DataFrame(entities).to_csv(out_path, index=True, header=True, encoding='utf-8-sig', quoting=csv.QUOTE_ALL)
+
+
