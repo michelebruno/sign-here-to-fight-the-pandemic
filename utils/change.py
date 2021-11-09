@@ -132,15 +132,21 @@ def normalize_tag(tag):
 
 
 def slugs_from_normalized_tag(tag):
+    if type(tag) is list:
+        slugs = []
+        for t in tag:
+            slugs.extend(slugs_from_normalized_tag(t))
+        return slugs
     slugs = []
 
     all_tags = service.spreadsheets().values().get(
-        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='tuttitag_dict!A2:D'
+        spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='chosen_tags!A2:G'
     ).execute().get('values', [])
 
-    for slug, name, translation, clean in all_tags:
-        if clean == tag:
-            slugs.append(slug)
+    for row in all_tags:
+        if len(row) > 6:
+            if row[6] == tag:
+                slugs.append(row[4])
 
     return slugs
 
@@ -534,6 +540,10 @@ def flatten_petitions(
     return petition_rows
 
 
+def get_onedrive_path(*folders):
+    return os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), *folders)
+
+
 def get_json_path(*folders):
     return os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', *folders)
 
@@ -545,10 +555,19 @@ def get_petition_by_id(petitions, id):
 
 
 def get_petition_comments(petition_id):
+    if type(petition_id) is list:
+        all_comments = pandas.DataFrame()
+
+        for id in petition_id:
+            comms = get_petition_comments(id)
+            comms.assign(petition_id=id)
+            all_comments = pandas.concat([all_comments,comms], ignore_index=True)
+        return all_comments
+
     json_filename = get_json_path('comments', f"{petition_id}.json")
 
     if os.path.exists(json_filename) > 0:
-        print("Got from chache.")
+        # print("Got from chache.")
         return pandas.read_json(json_filename)
 
     is_last = False
