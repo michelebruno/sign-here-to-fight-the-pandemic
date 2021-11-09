@@ -2,11 +2,9 @@ import datetime
 import os.path
 from tags_per_country import found_tags as covid_tags
 
-
 import pandas as pd
 
-from utils.change import get_petitions_by_tag, slugs_from_normalized_tag, download_images_from_petitions, \
-    get_normalized_tags
+from utils.change import get_petitions_by_tag, slugs_from_normalized_tag, download_images_from_petitions
 
 
 def download_from_normalized_tag(t):

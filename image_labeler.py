@@ -52,13 +52,14 @@ def annotate_img_in_dir(dir_name):
     return saved_annotations
 
 
-def annotate_images_from_petitions(petitions: pandas.DataFrame, filename = 'annotations.json'):
+def annotate_images_from_petitions(petitions: pandas.DataFrame, filename='annotations.json'):
     with open(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', filename), 'r') as f:
         saved_annotations = json.load(f)
 
         last_saved = 0
-
-        for i, pet in tqdm(petitions.iterrows(), total=petitions.shape[0],
+        remaining = petitions.loc[~petitions['slug'].isin(saved_annotations)].reset_index()
+        for i, pet in tqdm(remaining.iterrows(),
+                           total=remaining.shape[0],
                            desc=f"Labelling images from list of petitions"):
             slug = pet['slug']
 
@@ -98,6 +99,6 @@ if __name__ == '__main__':
     chosen_country = utils.change.filter_only_for_chosen_countries(all_pets)
 
     for country, pets in chosen_country.groupby(by='country'):
-        if country == 'IT':
+        if country == 'US':
             print(f"Annotating pics for country {country}")
-            annotate_images_from_petitions(pets)
+            annotate_images_from_petitions(pets.iloc[::-1])

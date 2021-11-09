@@ -1,7 +1,7 @@
 import os.path
 
 from utils.change import count_not_normalized_tags, from_petitions_get_list_of_tags, \
-     get_all_petitions, filter_only_for_chosen_countries, normalize_tag
+    get_all_petitions, filter_only_for_chosen_countries, normalize_tag
 import pandas
 from dotenv import load_dotenv
 
@@ -16,6 +16,8 @@ sheet_cleared = False
 
 stored_petitions = []
 
+chosen_tags = pandas.read_csv(os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'chosen_tags.csv'))
+
 if __name__ == '__main__':
 
     keyword = 'covid'
@@ -26,26 +28,22 @@ if __name__ == '__main__':
     filtered_by_country = filter_only_for_chosen_countries(get_all_petitions())
 
     for country, pets in filtered_by_country.groupby('country'):
+        country_tags = chosen_tags.loc[chosen_tags['country'] == country]
+
+        country_tags = country_tags.sort_values(by='total_count', ascending=False)
+
         edges = pandas.DataFrame(
-            from_petitions_get_list_of_tags(pets, with_id=True, normalized=True, ),
+            from_petitions_get_list_of_tags(pets, normalized=True, ),
             columns=['source', 'target'])
 
-        tags = count_not_normalized_tags(filtered_by_country)
-
-        tags.sort_values(by='total_count', ascending=False, inplace=True)
-
-        tags = tags.head(150)
-
-        tags_normalized = [normalize_tag(t['name']) for i, t in tags.iterrows()]
-
-        edges = edges.loc[edges['target'].isin(tags_normalized)]
-        edges = edges.loc[~edges['target'].isin(['coronavirus',
-                                                 'corona',
-                                                 'covid-19'])]
+        edges = edges.loc[edges['target'].isin(country_tags['normalized'].head(75))]
+        #
+        edges = edges.loc[~edges['target'].isin(
+            ('coronavirus', 'covid', 'covid-19', 'covid-19 epidemic', 'covid-19 pandemic', 'pandemic'))]
 
         petition_nodes = pandas.DataFrame()
 
-        petition_nodes = petition_nodes.assign(id=edges['source'].unique(),
+        petition_nodes = petition_nodes.assign(id=edges['source'].unique(), label='',
                                                category='petition')
 
         tag_nodes = pandas.DataFrame()
