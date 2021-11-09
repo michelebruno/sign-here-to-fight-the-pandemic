@@ -8,6 +8,7 @@ from urllib.parse import quote
 import pandas
 from dotenv import load_dotenv
 from tqdm import tqdm
+from yaspin import yaspin
 
 import utils.google_services
 from utils.http import http
@@ -314,7 +315,7 @@ def count_not_normalized_tags(petitions: pandas.DataFrame, **kwargs):
                     'total_count': 0,
                     **kwargs,
                     **tag,
-                    'total_count':0
+                    'total_count': 0
                 }
                 found_tags[key] = newtag
 
@@ -533,7 +534,48 @@ def flatten_petitions(
     return petition_rows
 
 
+def get_json_path(*folders):
+    return os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', *folders)
+
+
 def get_petition_by_id(petitions, id):
     x = petitions.loc[petitions['id'] == id]
     x = x.to_dict('records')
     return x[0]
+
+
+def get_petition_comments(petition_id):
+    json_filename = get_json_path('comments', f"{petition_id}.json")
+
+    if os.path.exists(json_filename) > 0:
+        print("Got from chache.")
+        return pandas.read_json(json_filename)
+
+    is_last = False
+    offset = 0
+    limit = 10
+
+    comments = []
+    with yaspin(
+            text=f"Looking for comments in petition {petition_id}") as spinner:
+        while not is_last:
+            # il while loop che aumenta di uno è mostruosamente lento obv ma altrimenti dobbiamo indovinare
+            # quanti ne mancano. In alternativa incrementiamo di 100 ogni loop fino a risposta negativa,
+            # poi incrementiamo di 1 fino a nuova risposta negativa
+
+            base_url = r'https://www.change.org/api-proxy/-/comments'
+
+            res = http.get(
+                f"{base_url}?limit={limit}&offset={offset}&commentable_type=Event&commentable_id={petition_id}").json()
+
+            offset += limit
+
+            is_last = bool(res['last_page'])
+
+            comments.extend(res['items'])
+        spinner.ok(f"Scraped {len(comments)} comments in petition {petition_id}")
+
+        comments_df = pandas.DataFrame(comments)
+
+        comments_df.to_json(json_filename)
+        return comments_df
