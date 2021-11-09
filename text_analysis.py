@@ -96,7 +96,7 @@ sample_text = "L'ornithorynque (Ornithorhynchus anatinus) est un animal semi-aqu
 csv_path = r'C:\Users\lucad\OneDrive - Politecnico di Milano\Density\scraped-images\domanda 3 - mondello\data.csv'
 out_path = r'C:\Users\lucad\Desktop\mondello.csv'
 
-def text_analysis_from_csv(csv_path)
+def text_analysis_from_csv(csv_path):
     # Semicolon because excel is a son of a bitch, #todo: change ; to ,
     df = pd.read_csv(csv_path, delimiter=';')
 
