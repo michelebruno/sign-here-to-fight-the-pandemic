@@ -30,13 +30,16 @@ if __name__ == '__main__':
     for country, pets in filtered_by_country.groupby('country'):
         country_tags = chosen_tags.loc[chosen_tags['country'] == country]
 
+        country_tags = country_tags.sort_values(by='total_count', ascending=False)
+
         edges = pandas.DataFrame(
             from_petitions_get_list_of_tags(pets, normalized=True, ),
             columns=['source', 'target'])
 
-        # edges = edges.loc[edges['target'].isin(country_tags['normalized'])]
-
-        edges = edges.loc[~edges['target'].isin(('coronavirus', 'covid', 'covid-19'))]
+        edges = edges.loc[edges['target'].isin(country_tags['normalized'].head(75))]
+        #
+        edges = edges.loc[~edges['target'].isin(
+            ('coronavirus', 'covid', 'covid-19', 'covid-19 epidemic', 'covid-19 pandemic', 'pandemic'))]
 
         petition_nodes = pandas.DataFrame()
 
