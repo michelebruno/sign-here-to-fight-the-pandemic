@@ -62,8 +62,11 @@ def _parse_petition(petition):
     for tag in petition['tags']:
         tag_raw_names.append(tag['name'])
         tag['name'] = tag['name'].lower()
-        n = normalize_tag(tag['name'])
-        tag_names.append(n)
+
+        if has_tag_been_normalized(tag['name']):
+            n = normalize_tag(tag['name'])
+            tag_names.append(n)
+
         tags.append(tag)
         tag_slugs.append(tag['slug'])
 
@@ -100,13 +103,14 @@ def get_normalized_tags():
 
     if not _normalized_tags:
         normalized = service.spreadsheets().values().get(
-            spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='tuttitag_dict!A2:D').execute()
+            spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='chosen_tags!A2:G').execute()
 
         normal_rows = normalized.get('values', [])
 
         _normalized_tags = {}
         for row in normal_rows:
-            _normalized_tags[row[1].lower()] = row[3]
+            if len(row) > 6:
+                _normalized_tags[row[5].lower()] = row[6]
 
     return _normalized_tags
 
@@ -114,7 +118,7 @@ def get_normalized_tags():
 def has_tag_been_normalized(tag):
     tags = get_normalized_tags()
 
-    return tag.lower() in tags
+    return tag.lower() in tags and tags[tag.lower()] and tags[tag.lower()] != ''
 
 
 def normalize_tag(tag):
@@ -218,7 +222,7 @@ def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
 
             pets = pandas.concat([pets, p], ignore_index=True)
 
-        return pets.drop_duplicates('id', inplace=True, ignore_index=True)
+        return pets.drop_duplicates('id', ignore_index=True)
 
     if type(lang) is list:
         pets = pandas.DataFrame()
@@ -229,7 +233,7 @@ def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
 
             pets = pandas.concat([pets, p], ignore_index=True)
 
-        return pets.drop_duplicates('id', inplace=True, ignore_index=True)
+        return pets.drop_duplicates('id', ignore_index=True)
 
     pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'keywords', lang, f"{keyword}.json")
 
@@ -241,7 +245,8 @@ def get_petitions_by_keyword(keyword: str, lang: str = 'it-IT'):
 def get_petitions_by_tag(tag: str):
     pkl_path = os.path.join(os.environ.get('ONEDRIVE_FOLDER_PATH'), 'json', 'tags', f"{tag}.json")
 
-    return _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')
+    return pandas.DataFrame(
+        _get_file_or_fetch(pkl_path, f'https://www.change.org/api-proxy/-/tags/{tag}/petitions?')['items'])
 
 
 def get_related_tags(tag: str):
@@ -305,11 +310,13 @@ def count_not_normalized_tags(petitions: pandas.DataFrame, **kwargs):
             key = tag['slug']
 
             if key not in found_tags:
-                found_tags[key] = {
+                newtag = {
                     'total_count': 0,
                     **kwargs,
-                    **tag
+                    **tag,
+                    'total_count':0
                 }
+                found_tags[key] = newtag
 
             found_tags[key]['total_count'] = found_tags[key]['total_count'] + 1
 
@@ -398,27 +405,30 @@ def download_images_from_petitions(petitions: pandas.DataFrame, folder_name='unn
         f"With no images {no_pic_found} ")
 
 
-def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_normalized: bool = True, with_id=False):
+def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_normalized: bool = True):
     '''
-    Da un dataframe di petizioni, restituisce una lista con i tag presenti in ciascuna petizione uniti da virgola.
 
     :param normalized:
     :param petitions:
     :param filename:
-    :return: Lista dei soli tag normalizzati uniti da virgola [ 'tag1,tag2,tag3', 'tag2,tag5,tag9',...]
+    :return:
     '''
     tags = []
 
-    normalized_tags = [t for i, t in get_normalized_tags().items()]
     for i, petition in petitions.iterrows():
+
+        t = []
+
         if normalized:
-            for tag in petition['tag_names']:
-                if not only_normalized or tag in normalized_tags:
-                    tags.append((petition['id'], tag))
+            for tag in petition['tag_raw_names']:
+                if has_tag_been_normalized(tag.lower()) or not only_normalized:
+                    t.append(normalize_tag(tag.lower()))
         else:
             for tag in petition['tag_raw_names']:
-                tags.append((petition['id'], tag))
+                t.append(tag)
 
+        for _t in set(t):
+            tags.append((petition['id'], _t))
 
     return tags
 
@@ -521,3 +531,9 @@ def flatten_petitions(
         petition_rows.append(row)
 
     return petition_rows
+
+
+def get_petition_by_id(petitions, id):
+    x = petitions.loc[petitions['id'] == id]
+    x = x.to_dict('records')
+    return x[0]
