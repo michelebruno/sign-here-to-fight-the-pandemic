@@ -560,7 +560,6 @@ def get_petition_comments(petition_id):
 
         for id in petition_id:
             comms = get_petition_comments(id)
-            comms.assign(petition_id=id)
             all_comments = pandas.concat([all_comments,comms], ignore_index=True)
         return all_comments
 
