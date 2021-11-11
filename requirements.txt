@@ -8,3 +8,6 @@ google-auth-httplib2~=0.1.0
 google-auth-oauthlib~=0.4.6
 
 six~=1.16.0
+yaspin~=2.1.0
+plotly~=5.3.1
+numpy~=1.21.4

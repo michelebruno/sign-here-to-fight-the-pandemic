@@ -6,7 +6,9 @@
 
 # GOOGLE TRANSLATE API
 import os.path
+import plotly.express as px
 
+import numpy
 import pandas
 # GOOGLE NATURAL LANGUAGE API
 # this is the api that gives us sentiment, entities and categorisation of the text
@@ -100,6 +102,7 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
         ('measures', 'measure'),
         ('human beings', 'human beings'),
         ('grandparents', 'grandparent'),
+        ('parent', 'parents'),
         ('numbers', 'number'),
         ('teachers', 'teacher'),
         ('diseases', 'disease'),
@@ -116,6 +119,7 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
         ('quarantines', 'quarantine'),
         ('individuals', 'individual'),
         ('results', 'result'),
+        ('child', 'children'),
         ('efforts', 'effort'),
         ('buildings', 'building'),
         ('variants', 'variant'),
@@ -131,7 +135,7 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
     for (find, replace) in find_replace:
         analysed_results.replace(to_replace=find, value=replace, inplace=True)
 
-    summedup = analysed_results.groupby(by=['name', 'type']).size()
+    summedup = analysed_results.groupby(by=['name']).size()
 
     summedup = summedup.reset_index(name='count')
 
@@ -139,21 +143,70 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
 
     summedup.sort_values(by='count', inplace=True, ascending=False)
 
-    summedup = summedup.loc[summedup['count'] > summedup['count'].quantile(.75)]
+    summedup = summedup.head(130)
 
     summedup.to_csv(
         utils.change.get_onedrive_path('csv', f'entities-{topic_name}-top-comments.csv'),
         encoding='UTF-8', quoting=csv.QUOTE_ALL, index=False)
+
+    summedup = summedup.assign(source=topic_name)
     return summedup
 
 
 nomask_tagnames = ['unmasking', 'mask choice', 'unmask our kids']
 promask_tagnames = ['mask in school', 'mask mandate', 'mask to fight covid-19', 'make mask mandatory']
+
 unmask_analyzed = analyze_comments_from_petition_slugs(set(utils.change.slugs_from_normalized_tag(nomask_tagnames)),
                                                        topic_name='unmask',
                                                        petitions_limit=100)
 promask_analyzed = analyze_comments_from_petition_slugs(set(utils.change.slugs_from_normalized_tag(promask_tagnames)),
                                                         topic_name='promask', petitions_limit=100)
 
+unmask_analyzed_total = unmask_analyzed['count'].sum()
+promask_analyzed_total = promask_analyzed['count'].sum()
+
+unmask_analyzed = unmask_analyzed.assign(percentage=lambda x: numpy.log10(x['count'] * 100 / unmask_analyzed_total))
+promask_analyzed = promask_analyzed.assign(percentage=lambda x: numpy.log10(x['count'] * 100 / promask_analyzed_total))
+
+data = []
+
+for i, row in unmask_analyzed.iterrows():
+
+    name = row['name']
+
+    filtered_promask = promask_analyzed.loc[promask_analyzed['name'] == name]
+
+    if filtered_promask.shape[0]:
+        promask_data = filtered_promask.iloc[0]
+        data.append({'name': name, 'nomask': row['percentage'], 'promask': promask_data['percentage'], })
+
+scatter = pandas.DataFrame(data)
+scatter.to_csv(utils.change.get_onedrive_path('csv', 'scatter-boh.csv'), index=False)
+
+scartate = pandas.concat([
+    unmask_analyzed.loc[~unmask_analyzed['name'].isin(scatter['name'])],
+    promask_analyzed.loc[~promask_analyzed['name'].isin(scatter['name'])],
+], ignore_index=True)
+
+scartate.to_csv(utils.change.get_onedrive_path('csv', 'scatter-scartate.csv'), index=False)
+
 pandas.concat([promask_analyzed.assign(source='promask'), unmask_analyzed.assign(source='unmask')]).to_csv(
     utils.change.get_onedrive_path('csv', 'entietes_both.csv'))
+
+fig = px.scatter(scatter, x='nomask', y='promask', text='name', width=3000, height=2000)
+fig.write_image(utils.change.get_onedrive_path('protocol3-scatter.svg'))
+
+
+
+def get_comments_of_pet():
+    slugs = set(utils.change.slugs_from_normalized_tag(nomask_tagnames))
+    filtered_pets = all_pets.loc[all_pets['tag_slugs'].map(
+        lambda x: True if set(x).intersection(slugs) else False)]
+
+    top_pets = filtered_pets.sort_values(by='total_signature_count', ascending=False).head(2)
+
+    comments = get_petition_comments(top_pets['id'].tolist())
+
+    comments['comment'].csv('comments.json', orient='values')
+
+# get_comments_of_pet()
