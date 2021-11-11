@@ -194,6 +194,9 @@ pandas.concat([promask_analyzed.assign(source='promask'), unmask_analyzed.assign
     utils.change.get_onedrive_path('csv', 'entietes_both.csv'))
 
 fig = px.scatter(scatter, x='nomask', y='promask', text='name', width=3000, height=2000)
+fig.update_traces(textposition='middle right', textfont=dict(
+        size=32,
+    ))
 fig.write_image(utils.change.get_onedrive_path('protocol3-scatter.svg'))
 
 
