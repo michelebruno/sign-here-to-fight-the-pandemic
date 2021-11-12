@@ -11,7 +11,7 @@ edges = []
 
 nodes = []
 
-for (url, slug, estetica, *subjects) in values:
+for (url, slug, signatures, estetica, *subjects) in values:
     nodes.append({
         'id': slug,
         'label': '',
@@ -31,7 +31,7 @@ tag_nodes = pandas.DataFrame()
 
 tag_nodes = tag_nodes.assign(id=edges['target'].unique(), label=lambda x: x['id'], category='subject')
 
-edges.to_csv(utils.change.get_onedrive_path('csv', 'images-network', 'edges.csv'), index=False)
+edges.to_csv(utils.change.get_onedrive_path('csv', 'images-network', 'promask-edges.csv'), index=False)
 
 pandas.concat([petition_nodes, tag_nodes], ignore_index=True).to_csv(
-    utils.change.get_onedrive_path('csv', 'images-network', 'nodes.csv'), index=False)
+    utils.change.get_onedrive_path('csv', 'images-network', 'promask-nodes.csv'), index=False)

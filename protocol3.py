@@ -55,6 +55,36 @@ def analyze_comments(comments, petition_id):
     return df
 
 
+def analyze_petition_text(text, petition_id):
+    jsonpath = get_json_path('comment-analysis', f"{petition_id}-analysis.json")
+
+    if os.path.exists(jsonpath):
+        # print(f"{petition_id} comment analysis got from cache")
+        return pandas.read_json(jsonpath)
+
+    results = []
+
+    for index, row in tqdm(text.iterrows(), total=text.shape[0], desc=f"Analyzing for petition {petition_id}",
+                           position=1):
+        source_text = row['comment']
+
+        document = language.types.Document(content=source_text, type_=language.Document.Type.PLAIN_TEXT)
+        try:
+            response = analysis_client.analyze_entities(document=document, encoding_type='UTF8')
+
+            for entity in response.entities:
+                results.append({'commentable_id': row['commentable_id'], 'comment': source_text, 'name': entity.name,
+                                'type': str(entity.type_)[5:]})
+        except google.api_core.exceptions.InvalidArgument:
+            continue
+
+    df = pandas.DataFrame(results)
+
+    df.to_json(jsonpath)
+
+    return df
+
+
 all_pets = get_all_petitions()
 
 
@@ -112,6 +142,11 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
         ('districts', 'district'),
         ('residents', 'resident'),
         ('leaders', 'leader'),
+        ('right', 'rights'),
+        ('infection', 'infections'),
+        ('hospital', 'hospitals'),
+        ('classroom', 'classrooms'),
+        ('systems', 'system'),
         ('concerns', 'concern'),
         ('loved one', 'loved ones'),
         ('doctors', 'doctor'),
@@ -143,7 +178,7 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
 
     summedup.sort_values(by='count', inplace=True, ascending=False)
 
-    summedup = summedup.head(130)
+    summedup = summedup.head(90)
 
     summedup.to_csv(
         utils.change.get_onedrive_path('csv', f'entities-{topic_name}-top-comments.csv'),
@@ -165,8 +200,15 @@ promask_analyzed = analyze_comments_from_petition_slugs(set(utils.change.slugs_f
 unmask_analyzed_total = unmask_analyzed['count'].sum()
 promask_analyzed_total = promask_analyzed['count'].sum()
 
-unmask_analyzed = unmask_analyzed.assign(percentage=lambda x: numpy.log10(x['count'] * 100 / unmask_analyzed_total))
-promask_analyzed = promask_analyzed.assign(percentage=lambda x: numpy.log10(x['count'] * 100 / promask_analyzed_total))
+unmask_analyzed = unmask_analyzed.assign(
+    percentage=lambda x: x['count'] * 100 / unmask_analyzed_total,
+    normalized=lambda x: numpy.log10(x['count'])
+)
+
+promask_analyzed = promask_analyzed.assign(
+    percentage=lambda x: x['count'] * 100 / promask_analyzed_total,
+    normalized=lambda x: numpy.log10(x['count'])
+)
 
 data = []
 
@@ -178,9 +220,17 @@ for i, row in unmask_analyzed.iterrows():
 
     if filtered_promask.shape[0]:
         promask_data = filtered_promask.iloc[0]
-        data.append({'name': name, 'nomask': row['percentage'], 'promask': promask_data['percentage'], })
+        data.append(
+            {'name': name, 'nomask': row['count'], 'promask': promask_data['count'],
+             'nomask_%': row['percentage'], 'promask_%': promask_data['percentage'],
+             'nomask_normal': row['normalized'], 'promask_normal': promask_data['normalized'],
+             }
+        )
 
 scatter = pandas.DataFrame(data)
+
+scatter = scatter.assign(summed_normal=lambda x: x['nomask_normal'] + x['promask_normal'])
+scatter.sort_values(by='summed_normal', inplace=True)
 scatter.to_csv(utils.change.get_onedrive_path('csv', 'scatter-boh.csv'), index=False)
 
 scartate = pandas.concat([
@@ -193,12 +243,17 @@ scartate.to_csv(utils.change.get_onedrive_path('csv', 'scatter-scartate.csv'), i
 pandas.concat([promask_analyzed.assign(source='promask'), unmask_analyzed.assign(source='unmask')]).to_csv(
     utils.change.get_onedrive_path('csv', 'entietes_both.csv'))
 
-fig = px.scatter(scatter, x='nomask', y='promask', text='name', width=3000, height=2000)
+fig = px.scatter(scatter, x='nomask', y='promask', text='name', width=1500, height=1000)
 fig.update_traces(textposition='middle right', textfont=dict(
-        size=32,
-    ))
-fig.write_image(utils.change.get_onedrive_path('protocol3-scatter.svg'))
+    size=16,
+), marker=dict(
+    size=10,
+))
 
+# fig.update_xaxes(range=[-1.2, 1])
+# fig.update_yaxes(range=[-1.2, 1])
+
+fig.write_image(utils.change.get_onedrive_path('protocol3-scatter.svg'))
 
 
 def get_comments_of_pet():
