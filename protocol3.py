@@ -6,6 +6,7 @@
 
 # GOOGLE TRANSLATE API
 import os.path
+
 import plotly.express as px
 
 import numpy
@@ -88,6 +89,30 @@ def analyze_petition_text(text, petition_id):
 all_pets = get_all_petitions()
 
 
+def flatten_comments(comments: pandas.DataFrame):
+    df = comments.copy()
+
+    df['created_at'] = df['created_at'].map(lambda x: x.strftime('%Y-%m-%D'))
+    df.drop(columns=['commentable_entity', 'user', 'deleted_at', 'parent_id'], inplace=True)
+    df.sort_values(by=['likes'], inplace=True)
+    df.drop_duplicates('comment', inplace=True)
+
+    df = df.head(1000)
+
+    df['comment'] = df['comment'].apply(utils.change.cleanhtml)
+    df['comment'] = df['comment'].str.replace(r"  ", ' ')
+    df['comment'] = df['comment'].str.replace(r' ([!.,"\']*)', 'children ', regex=True, case=False)
+    df['comment'] = df['comment'].str.replace(r'children([!.,"\']*)', 'children ', regex=True, case=False)
+    df['comment'] = df['comment'].str.replace(r'children ([!.,"\']*)', 'children ', regex=True, case=False)
+    df['comment'] = df['comment'].str.replace(r'([!.,"\']*) Children', ' Children', regex=True, case=False)
+    df['comment'] = df['comment'].str.replace(r'([!.,"\']*)Children', 'Children', regex=True, case=False)
+    df['comment'] = df['comment'].str.replace(r"'", '’')
+    df['comment'] = df['comment'].str.replace(r"  ", ' ')
+
+
+    return df
+
+
 def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petitions_limit=None):
     print(f"Analyzing petition comments about {topic_name}")
 
@@ -102,6 +127,8 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
 
     comments = get_petition_comments(top_pets['id'].tolist())
 
+    save_list_to_sheets_tab(flatten_comments(comments), f"commenti-{topic_name}")
+
     analysed_results = pandas.DataFrame()
 
     for petition_id, comms in tqdm(comments.groupby('commentable_id'), colour='green'):
@@ -113,58 +140,60 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
     analysed_results['name'] = analysed_results['name'].str.lower()
 
     find_replace = [
-        ('mask mandates', 'mask mandate'),
-        ('freedoms', 'freedom'),
-        ('masks', 'mask'),
-        ('vaccines', 'vaccine'),
-        ('decisions', 'decision'),
-        ('schools', 'school'),
-        ('choices', 'choice'),
-        ('families', 'family'),
-        ('doctors', 'doctor'),
-        ('reasons', 'reason'),
-        ('benefits', 'benefit'),
-        ('students', 'student'),
-        ('face mask', 'face masks'),
-        ('covid-19', 'covid19'),
-        ('opinions', 'opinion',),
-        ('precautions', 'precaution'),
-        ('measures', 'measure'),
-        ('human beings', 'human beings'),
-        ('grandparents', 'grandparent'),
-        ('parent', 'parents'),
-        ('numbers', 'number'),
-        ('teachers', 'teacher'),
-        ('diseases', 'disease'),
-        ('chances', 'chance'),
-        ('healthcare worker', 'healthcare workers'),
-        ('recommendations', 'recommendation'),
-        ('districts', 'district'),
-        ('residents', 'resident'),
-        ('leaders', 'leader'),
-        ('right', 'rights'),
-        ('infection', 'infections'),
-        ('hospital', 'hospitals'),
-        ('classroom', 'classrooms'),
-        ('systems', 'system'),
-        ('concerns', 'concern'),
-        ('loved one', 'loved ones'),
-        ('doctors', 'doctor'),
-        ('health issue', 'health issues'),
-        ('quarantines', 'quarantine'),
-        ('individuals', 'individual'),
-        ('results', 'result'),
-        ('child', 'children'),
-        ('efforts', 'effort'),
-        ('buildings', 'building'),
-        ('variants', 'variant'),
-        ('mandates', 'mandate'),
-        ('physicians', 'physician'),
-        ('scientists', 'scientist'),
-        ('granddaughters', 'granddaughter'),
         ('americans', 'american'),
-        ('reason', 'reasons'),
+        ('benefits', 'benefit'),
+        ('bodies', 'body'),
+        ('buildings', 'building'),
+        ('chances', 'chance'),
+        ('child', 'children'),
+        ('choices', 'choice'),
+        ('classroom', 'classrooms'),
+        ('concerns', 'concern'),
+        ('covid-19', 'covid19'),
+        ('decisions', 'decision'),
+        ('diseases', 'disease'),
+        ('districts', 'district'),
+        ('doctors', 'doctor'),
+        ('doctors', 'doctor'),
+        ('efforts', 'effort'),
+        ('face mask', 'face masks'),
+        ('families', 'family'),
+        ('freedoms', 'freedom'),
+        ('granddaughters', 'granddaughter'),
+        ('grandparents', 'grandparent'),
+        ('health issue', 'health issues'),
+        ('healthcare worker', 'healthcare workers'),
+        ('hospital', 'hospitals'),
+        ('human beings', 'human beings'),
+        ('individuals', 'individual'),
+        ('infection', 'infections'),
+        ('kid', 'kids'),
+        ('leaders', 'leader'),
+        ('loved one', 'loved ones'),
+        ('mandates', 'mandate'),
+        ('mask mandates', 'mask mandate'),
+        ('masks', 'mask'),
+        ('measures', 'measure'),
+        ('numbers', 'number'),
+        ('opinions', 'opinion',),
         ('option', 'options'),
+        ('parent', 'parents'),
+        ('physicians', 'physician'),
+        ('precautions', 'precaution'),
+        ('quarantines', 'quarantine'),
+        ('reason', 'reasons'),
+        ('reasons', 'reason'),
+        ('recommendations', 'recommendation'),
+        ('residents', 'resident'),
+        ('results', 'result'),
+        ('right', 'rights'),
+        ('schools', 'school'),
+        ('scientists', 'scientist'),
+        ('students', 'student'),
+        ('systems', 'system'),
+        ('teachers', 'teacher'),
+        ('vaccines', 'vaccine'),
+        ('variants', 'variant'),
     ]
 
     for (find, replace) in find_replace:
@@ -178,7 +207,7 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
 
     summedup.sort_values(by='count', inplace=True, ascending=False)
 
-    summedup = summedup.head(90)
+    summedup = summedup.head(200)
 
     summedup.to_csv(
         utils.change.get_onedrive_path('csv', f'entities-{topic_name}-top-comments.csv'),
@@ -202,13 +231,16 @@ promask_analyzed_total = promask_analyzed['count'].sum()
 
 unmask_analyzed = unmask_analyzed.assign(
     percentage=lambda x: x['count'] * 100 / unmask_analyzed_total,
-    normalized=lambda x: numpy.log10(x['count'])
+    normalized=lambda x: numpy.log10(x['percentage']) / numpy.log10(4)
 )
 
 promask_analyzed = promask_analyzed.assign(
     percentage=lambda x: x['count'] * 100 / promask_analyzed_total,
-    normalized=lambda x: numpy.log10(x['count'])
+    normalized=lambda x: numpy.log10(x['percentage']) / numpy.log10(4)
 )
+
+unmask_analyzed['normalized'] = unmask_analyzed['normalized'].apply(lambda x: x + 2)
+promask_analyzed['normalized'] = promask_analyzed['normalized'].apply(lambda x: x + 2)
 
 data = []
 
@@ -229,8 +261,8 @@ for i, row in unmask_analyzed.iterrows():
 
 scatter = pandas.DataFrame(data)
 
-scatter = scatter.assign(summed_normal=lambda x: x['nomask_normal'] + x['promask_normal'])
-scatter.sort_values(by='summed_normal', inplace=True)
+scatter = scatter.assign(summed_percentage=lambda x: x['nomask_%'] + x['promask_%'])
+scatter.sort_values(by='summed_percentage', inplace=True, ascending=False)
 scatter.to_csv(utils.change.get_onedrive_path('csv', 'scatter-boh.csv'), index=False)
 
 scartate = pandas.concat([
