@@ -5,6 +5,7 @@
 # fino a quando last_page == true (last page è la penultima key del json, prima di total count)
 
 # GOOGLE TRANSLATE API
+import json
 import os.path
 
 import plotly.express as px
@@ -35,8 +36,7 @@ def analyze_comments(comments, petition_id):
 
     results = []
 
-    for index, row in tqdm(comments.iterrows(), total=comments.shape[0], desc=f"Analyzing for petition {petition_id}",
-                           position=1):
+    for index, row in tqdm(comments.iterrows(), total=comments.shape[0], desc=f"Analyzing for petition {petition_id}"):
         source_text = row['comment']
 
         document = language.types.Document(content=source_text, type_=language.Document.Type.PLAIN_TEXT)
@@ -65,8 +65,7 @@ def analyze_petition_text(text, petition_id):
 
     results = []
 
-    for index, row in tqdm(text.iterrows(), total=text.shape[0], desc=f"Analyzing for petition {petition_id}",
-                           position=1):
+    for index, row in tqdm(text.iterrows(), total=text.shape[0], desc=f"Analyzing for petition {petition_id}"):
         source_text = row['comment']
 
         document = language.types.Document(content=source_text, type_=language.Document.Type.PLAIN_TEXT)
@@ -86,35 +85,32 @@ def analyze_petition_text(text, petition_id):
     return df
 
 
-all_pets = get_all_petitions()
-
-
 def flatten_comments(comments: pandas.DataFrame):
     df = comments.copy()
 
     df['created_at'] = df['created_at'].map(lambda x: x.strftime('%Y-%m-%D'))
-    df.drop(columns=['commentable_entity', 'user', 'deleted_at', 'parent_id'], inplace=True)
-    df.sort_values(by=['likes'], inplace=True)
+    df.sort_values(by=['likes'], inplace=True, ascending=False)
     df.drop_duplicates('comment', inplace=True)
 
     df = df.head(1000)
 
-    df['comment'] = df['comment'].apply(utils.change.cleanhtml)
-    df['comment'] = df['comment'].str.replace(r"  ", ' ')
-    df['comment'] = df['comment'].str.replace(r' ([!.,"\']*)', 'children ', regex=True, case=False)
-    df['comment'] = df['comment'].str.replace(r'children([!.,"\']*)', 'children ', regex=True, case=False)
-    df['comment'] = df['comment'].str.replace(r'children ([!.,"\']*)', 'children ', regex=True, case=False)
-    df['comment'] = df['comment'].str.replace(r'([!.,"\']*) Children', ' Children', regex=True, case=False)
-    df['comment'] = df['comment'].str.replace(r'([!.,"\']*)Children', 'Children', regex=True, case=False)
-    df['comment'] = df['comment'].str.replace(r"'", '’')
-    df['comment'] = df['comment'].str.replace(r"  ", ' ')
+    df = df.assign(
+        petition_link=lambda x: x['commentable_entity'].map(
+            lambda y: f"https://www.change.org/p/{y['slug']}"),
+        author=lambda x: x['user'].map(
+            lambda y: y['display_name'])
+    )
+    df.drop(columns=['commentable_entity', 'user', 'deleted_at', 'parent_id'], inplace=True)
 
+    df['comment'] = df['comment'].apply(utils.change.cleanhtml)
 
     return df
 
 
-def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petitions_limit=None):
+def get_comments_from_petition_slugs(slugs, topic_name, country=None, petitions_limit=None):
     print(f"Analyzing petition comments about {topic_name}")
+
+    all_pets = get_all_petitions()
 
     filtered_pets = all_pets.loc[all_pets['tag_slugs'].map(lambda x: True if set(x).intersection(slugs) else False)]
 
@@ -125,7 +121,11 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
     if petitions_limit:
         top_pets = top_pets.head(petitions_limit)
 
-    comments = get_petition_comments(top_pets['id'].tolist())
+    return get_petition_comments(top_pets['id'].tolist())
+
+
+def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petitions_limit=None):
+    comments = get_comments_from_petition_slugs(slugs, topic_name, country, petitions_limit)
 
     save_list_to_sheets_tab(flatten_comments(comments), f"commenti-{topic_name}")
 
@@ -203,15 +203,13 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
 
     summedup = summedup.reset_index(name='count')
 
-    summedup = summedup.loc[summedup['count'] > 10]
+    summedup = summedup.loc[summedup['count'] > 5]
 
     summedup.sort_values(by='count', inplace=True, ascending=False)
 
-    summedup = summedup.head(200)
-
-    summedup.to_csv(
-        utils.change.get_onedrive_path('csv', f'entities-{topic_name}-top-comments.csv'),
-        encoding='UTF-8', quoting=csv.QUOTE_ALL, index=False)
+    # summedup.to_csv(
+    #     utils.change.get_onedrive_path('csv', f'entities-{topic_name}-top-comments.csv'),
+    #     encoding='UTF-8', quoting=csv.QUOTE_ALL, index=False)
 
     summedup = summedup.assign(source=topic_name)
     return summedup
@@ -220,83 +218,90 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
 nomask_tagnames = ['unmasking', 'mask choice', 'unmask our kids']
 promask_tagnames = ['mask in school', 'mask mandate', 'mask to fight covid-19', 'make mask mandatory']
 
-unmask_analyzed = analyze_comments_from_petition_slugs(set(utils.change.slugs_from_normalized_tag(nomask_tagnames)),
-                                                       topic_name='unmask',
-                                                       petitions_limit=100)
-promask_analyzed = analyze_comments_from_petition_slugs(set(utils.change.slugs_from_normalized_tag(promask_tagnames)),
-                                                        topic_name='promask', petitions_limit=100)
+promask_slugs = set(utils.change.slugs_from_normalized_tag(promask_tagnames))
+nomask_slugs = set(utils.change.slugs_from_normalized_tag(nomask_tagnames))
 
-unmask_analyzed_total = unmask_analyzed['count'].sum()
-promask_analyzed_total = promask_analyzed['count'].sum()
+if __name__ == '__main__':
+    all_pets = get_all_petitions()
 
-unmask_analyzed = unmask_analyzed.assign(
-    percentage=lambda x: x['count'] * 100 / unmask_analyzed_total,
-    normalized=lambda x: numpy.log10(x['percentage']) / numpy.log10(4)
-)
+    unmask_analyzed = analyze_comments_from_petition_slugs(nomask_slugs,
+                                                           topic_name='unmask',
+                                                           petitions_limit=100)
+    promask_analyzed = analyze_comments_from_petition_slugs(
+        promask_slugs,
+        topic_name='promask', petitions_limit=100)
 
-promask_analyzed = promask_analyzed.assign(
-    percentage=lambda x: x['count'] * 100 / promask_analyzed_total,
-    normalized=lambda x: numpy.log10(x['percentage']) / numpy.log10(4)
-)
+    unmask_analyzed_total = unmask_analyzed['count'].sum()
+    promask_analyzed_total = promask_analyzed['count'].sum()
 
-unmask_analyzed['normalized'] = unmask_analyzed['normalized'].apply(lambda x: x + 2)
-promask_analyzed['normalized'] = promask_analyzed['normalized'].apply(lambda x: x + 2)
+    unmask_analyzed = unmask_analyzed.head(200)
+    promask_analyzed = promask_analyzed.head(200)
 
-data = []
+    unmask_analyzed = unmask_analyzed.assign(
+        percentage=lambda x: x['count'] * 100 / unmask_analyzed_total,
+        normalized=lambda x: numpy.log10(x['percentage']) / numpy.log10(4)
+    )
 
-for i, row in unmask_analyzed.iterrows():
+    promask_analyzed = promask_analyzed.assign(
+        percentage=lambda x: x['count'] * 100 / promask_analyzed_total,
+        normalized=lambda x: numpy.log10(x['percentage']) / numpy.log10(4)
+    )
 
-    name = row['name']
+    unmask_analyzed['normalized'] = unmask_analyzed['normalized'].apply(lambda x: x + 2)
+    promask_analyzed['normalized'] = promask_analyzed['normalized'].apply(lambda x: x + 2)
 
-    filtered_promask = promask_analyzed.loc[promask_analyzed['name'] == name]
+    data = []
 
-    if filtered_promask.shape[0]:
-        promask_data = filtered_promask.iloc[0]
-        data.append(
-            {'name': name, 'nomask': row['count'], 'promask': promask_data['count'],
-             'nomask_%': row['percentage'], 'promask_%': promask_data['percentage'],
-             'nomask_normal': row['normalized'], 'promask_normal': promask_data['normalized'],
-             }
-        )
+    merged = promask_analyzed.merge(unmask_analyzed, left_on='name', right_on='name', suffixes=('_promask', '_nomask'),
+                                    how='outer')
 
-scatter = pandas.DataFrame(data)
+    scatter = merged.loc[~merged['normalized_promask'].isna()].loc[~merged['normalized_nomask'].isna()]
+    merged.fillna(0, inplace=True)
 
-scatter = scatter.assign(summed_percentage=lambda x: x['nomask_%'] + x['promask_%'])
-scatter.sort_values(by='summed_percentage', inplace=True, ascending=False)
-scatter.to_csv(utils.change.get_onedrive_path('csv', 'scatter-boh.csv'), index=False)
+    merged = merged.assign(percentage_both=lambda x: x['percentage_nomask'] + x['percentage_promask'])
+    merged.drop(columns=['source_promask', 'source_nomask'], inplace=True)
+    merged.sort_values(by=['percentage_both'], ascending=False, inplace=True)
 
-scartate = pandas.concat([
-    unmask_analyzed.loc[~unmask_analyzed['name'].isin(scatter['name'])],
-    promask_analyzed.loc[~promask_analyzed['name'].isin(scatter['name'])],
-], ignore_index=True)
+    utils.google_services.save_list_to_sheets_tab(merged, 'scatternonsopiu')
 
-scartate.to_csv(utils.change.get_onedrive_path('csv', 'scatter-scartate.csv'), index=False)
+    scatter = scatter.assign(summed_percentage=lambda x: x['percentage_nomask'] + x['percentage_promask'])
+    scatter.sort_values(by='summed_percentage', inplace=True, ascending=False)
+    scatter.to_csv(utils.change.get_onedrive_path('csv', 'scatter-boh.csv'), index=False)
 
-pandas.concat([promask_analyzed.assign(source='promask'), unmask_analyzed.assign(source='unmask')]).to_csv(
-    utils.change.get_onedrive_path('csv', 'entietes_both.csv'))
+    scartate = pandas.concat([
+        unmask_analyzed.loc[~unmask_analyzed['name'].isin(scatter['name'])],
+        promask_analyzed.loc[~promask_analyzed['name'].isin(scatter['name'])],
+    ], ignore_index=True)
 
-fig = px.scatter(scatter, x='nomask', y='promask', text='name', width=1500, height=1000)
-fig.update_traces(textposition='middle right', textfont=dict(
-    size=16,
-), marker=dict(
-    size=10,
-))
+    scartate.to_csv(utils.change.get_onedrive_path('csv', 'scatter-scartate.csv'), index=False)
 
-# fig.update_xaxes(range=[-1.2, 1])
-# fig.update_yaxes(range=[-1.2, 1])
-
-fig.write_image(utils.change.get_onedrive_path('protocol3-scatter.svg'))
+    pandas.concat([promask_analyzed.assign(source='promask'), unmask_analyzed.assign(source='unmask')]).to_csv(
+        utils.change.get_onedrive_path('csv', 'entietes_both.csv'))
 
 
-def get_comments_of_pet():
-    slugs = set(utils.change.slugs_from_normalized_tag(nomask_tagnames))
-    filtered_pets = all_pets.loc[all_pets['tag_slugs'].map(
-        lambda x: True if set(x).intersection(slugs) else False)]
 
-    top_pets = filtered_pets.sort_values(by='total_signature_count', ascending=False).head(2)
+    fig = px.scatter(scatter, x='normalized_nomask', y='normalized_promask', text='name', width=1500, height=1000)
+    fig.update_traces(textposition='middle right', textfont=dict(
+        size=16,
+    ), marker=dict(
+        size=10,
+    ))
 
-    comments = get_petition_comments(top_pets['id'].tolist())
+    # fig.update_xaxes(range=[-1.2, 1])
+    # fig.update_yaxes(range=[-1.2, 1])
 
-    comments['comment'].csv('comments.json', orient='values')
+    fig.write_image(utils.change.get_onedrive_path('protocol3-scatter.svg'))
 
-# get_comments_of_pet()
+
+    def get_comments_of_pet():
+        slugs = set(utils.change.slugs_from_normalized_tag(nomask_tagnames))
+        filtered_pets = all_pets.loc[all_pets['tag_slugs'].map(
+            lambda x: True if set(x).intersection(slugs) else False)]
+
+        top_pets = filtered_pets.sort_values(by='total_signature_count', ascending=False).head(2)
+
+        comments = get_petition_comments(top_pets['id'].tolist())
+
+        comments['comment'].csv('comments.json', orient='values')
+
+    # get_comments_of_pet()
