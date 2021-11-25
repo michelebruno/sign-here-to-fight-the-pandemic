@@ -263,9 +263,7 @@ def get_related_tags(tag: str):
 
 
 def filter_petitions_by_slug_tag(petitions, tags):
-    if type(tags) is not tuple:
-        tags = tuple(tags)
-    return petitions.loc[petitions['tag_slugs'].apply(lambda x: [t for t in x if t in tags])]
+    return petitions.loc[petitions['tag_slugs'].map(lambda x: True if set(x).intersection(tags) else False)]
 
 
 def filter_only_for_chosen_countries(petitions, countries=('US', 'GB', 'IN', 'CA', 'IT')):
@@ -509,6 +507,9 @@ def flatten_petitions(
         row = {
             'date': date,
             'title': title,
+            'id': petition['id'],
+            'slug': slug,
+            'link': f'https://www.change.org/p/{quote(slug)}',
             'signatures': signatures,
             'page_views': page_views,
             'country': relevant_location['country_code'],
@@ -521,12 +522,9 @@ def flatten_petitions(
             'description': description,
             'victory': is_victory,
             'verified_victory': is_verified_victory,
-            'sponsored': sponsored,
+            # 'sponsored': sponsored,
             'share_count_total': share_count,
             'img_url': img_url,
-            'id': petition['id'],
-            'slug': slug,
-            'link': f'https://www.change.org/p/{quote(slug)}'
         }
 
         if 'original_locale' in petition:
@@ -560,7 +558,7 @@ def get_petition_comments(petition_id):
 
         for id in petition_id:
             comms = get_petition_comments(id)
-            all_comments = pandas.concat([all_comments,comms], ignore_index=True)
+            all_comments = pandas.concat([all_comments, comms], ignore_index=True)
         return all_comments
 
     json_filename = get_json_path('comments', f"{petition_id}.json")

@@ -97,6 +97,8 @@ def flatten_comments(comments: pandas.DataFrame):
     df = df.assign(
         petition_link=lambda x: x['commentable_entity'].map(
             lambda y: f"https://www.change.org/p/{y['slug']}"),
+        petition_slug=lambda x: x['commentable_entity'].map(
+            lambda y: y['slug']),
         author=lambda x: x['user'].map(
             lambda y: y['display_name'])
     )
@@ -277,8 +279,6 @@ if __name__ == '__main__':
 
     pandas.concat([promask_analyzed.assign(source='promask'), unmask_analyzed.assign(source='unmask')]).to_csv(
         utils.change.get_onedrive_path('csv', 'entietes_both.csv'))
-
-
 
     fig = px.scatter(scatter, x='normalized_nomask', y='normalized_promask', text='name', width=1500, height=1000)
     fig.update_traces(textposition='middle right', textfont=dict(
