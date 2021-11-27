@@ -22,7 +22,7 @@ scatter = get_service().spreadsheets().values().get(
 entities = pandas.DataFrame(scatter)
 
 for _i, entity in tqdm(entities.iterrows(), total=entities.shape[0]):
-    if _i > 10:
+    if _i > 30:
         break
 
     word = entity[0]
