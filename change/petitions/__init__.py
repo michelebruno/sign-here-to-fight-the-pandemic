@@ -201,7 +201,7 @@ def get_promask_petitions(limit=None):
     return filter(slugs=tags.get_promask_slugs(), country='US', sort_by='total_signature_count', limit=limit)
 
 
-def get_noomask_petitions(limit=None):
+def get_nomask_petitions(limit=None):
     return filter(slugs=tags.get_nomask_slugs(), country='US', sort_by='total_signature_count', limit=limit)
 
 

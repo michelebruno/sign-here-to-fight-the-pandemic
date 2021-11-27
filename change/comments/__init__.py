@@ -1,5 +1,6 @@
 import os
 
+import nltk
 import pandas
 from tqdm import tqdm
 from yaspin import yaspin
@@ -69,7 +70,7 @@ def flatten(comments: pandas.DataFrame):
 
     df['created_at'] = df['created_at'].map(lambda x: x.strftime('%Y-%m-%D'))
     df.sort_values(by=['likes'], inplace=True, ascending=False)
-    df.drop_duplicates('comment', inplace=True)
+    df.drop_duplicates('id', inplace=True)
 
     df = df.assign(
         petition_link=lambda x: x['commentable_entity'].map(
@@ -79,11 +80,70 @@ def flatten(comments: pandas.DataFrame):
         author=lambda x: x['user'].map(
             lambda y: y['display_name'])
     )
+
     df.drop(columns=['commentable_entity', 'user', 'deleted_at', 'parent_id'], inplace=True)
 
     df['comment'] = df['comment'].apply(utils.cleanhtml)
 
     return df
+
+
+find_replace = [
+    ('americans', 'american'),
+    ('benefits', 'benefit'),
+    ('bodies', 'body'),
+    ('buildings', 'building'),
+    ('chances', 'chance'),
+    ('child', 'children'),
+    ('choices', 'choice'),
+    ('classroom', 'classrooms'),
+    ('concerns', 'concern'),
+    ('covid-19', 'covid19'),
+    ('decisions', 'decision'),
+    ('diseases', 'disease'),
+    ('districts', 'district'),
+    ('doctors', 'doctor'),
+    ('doctors', 'doctor'),
+    ('efforts', 'effort'),
+    ('face mask', 'face masks'),
+    ('families', 'family'),
+    ('freedoms', 'freedom'),
+    ('granddaughters', 'granddaughter'),
+    ('grandparents', 'grandparent'),
+    ('health issue', 'health issues'),
+    ('healthcare worker', 'healthcare workers'),
+    ('hospital', 'hospitals'),
+    ('human beings', 'human beings'),
+    ('individuals', 'individual'),
+    ('infection', 'infections'),
+    ('kid', 'kids'),
+    ('leaders', 'leader'),
+    ('loved one', 'loved ones'),
+    ('mandates', 'mandate'),
+    ('mask mandates', 'mask mandate'),
+    ('masks', 'mask'),
+    ('measures', 'measure'),
+    ('numbers', 'number'),
+    ('opinions', 'opinion',),
+    ('option', 'options'),
+    ('parent', 'parents'),
+    ('physicians', 'physician'),
+    ('precautions', 'precaution'),
+    ('quarantines', 'quarantine'),
+    ('reason', 'reasons'),
+    ('reasons', 'reason'),
+    ('recommendations', 'recommendation'),
+    ('residents', 'resident'),
+    ('results', 'result'),
+    ('right', 'rights'),
+    ('schools', 'school'),
+    ('scientists', 'scientist'),
+    ('students', 'student'),
+    ('systems', 'system'),
+    ('teachers', 'teacher'),
+    ('vaccines', 'vaccine'),
+    ('variants', 'variant'),
+]
 
 
 def get_comments_from_petition_slugs(slugs, topic_name, country=None, petitions_limit=None):
@@ -117,63 +177,6 @@ def analyze_comments_from_petition_slugs(slugs, topic_name, country=None, petiti
     analysed_results = analysed_results.assign(comment_hash=lambda p: p['comment'].map(hash))
 
     analysed_results['name'] = analysed_results['name'].str.lower()
-
-    find_replace = [
-        ('americans', 'american'),
-        ('benefits', 'benefit'),
-        ('bodies', 'body'),
-        ('buildings', 'building'),
-        ('chances', 'chance'),
-        ('child', 'children'),
-        ('choices', 'choice'),
-        ('classroom', 'classrooms'),
-        ('concerns', 'concern'),
-        ('covid-19', 'covid19'),
-        ('decisions', 'decision'),
-        ('diseases', 'disease'),
-        ('districts', 'district'),
-        ('doctors', 'doctor'),
-        ('doctors', 'doctor'),
-        ('efforts', 'effort'),
-        ('face mask', 'face masks'),
-        ('families', 'family'),
-        ('freedoms', 'freedom'),
-        ('granddaughters', 'granddaughter'),
-        ('grandparents', 'grandparent'),
-        ('health issue', 'health issues'),
-        ('healthcare worker', 'healthcare workers'),
-        ('hospital', 'hospitals'),
-        ('human beings', 'human beings'),
-        ('individuals', 'individual'),
-        ('infection', 'infections'),
-        ('kid', 'kids'),
-        ('leaders', 'leader'),
-        ('loved one', 'loved ones'),
-        ('mandates', 'mandate'),
-        ('mask mandates', 'mask mandate'),
-        ('masks', 'mask'),
-        ('measures', 'measure'),
-        ('numbers', 'number'),
-        ('opinions', 'opinion',),
-        ('option', 'options'),
-        ('parent', 'parents'),
-        ('physicians', 'physician'),
-        ('precautions', 'precaution'),
-        ('quarantines', 'quarantine'),
-        ('reason', 'reasons'),
-        ('reasons', 'reason'),
-        ('recommendations', 'recommendation'),
-        ('residents', 'resident'),
-        ('results', 'result'),
-        ('right', 'rights'),
-        ('schools', 'school'),
-        ('scientists', 'scientist'),
-        ('students', 'student'),
-        ('systems', 'system'),
-        ('teachers', 'teacher'),
-        ('vaccines', 'vaccine'),
-        ('variants', 'variant'),
-    ]
 
     for (find, replace) in find_replace:
         analysed_results.replace(to_replace=find, value=replace, inplace=True)
@@ -250,3 +253,32 @@ def analyze_petition_text(text, petition_id):
     df.to_json(jsonpath)
 
     return df
+
+
+def extract_for_glossary(comments: pandas.DataFrame, word, origin):
+    """
+
+    :param comments:
+    :param word:
+    :param origin:
+    :return:
+    :rtype: pandas.DataFrame
+    """
+    comments = comments.copy()
+
+    if 'sentences' not in comments.columns.tolist():
+        comments['sentences'] = comments['comment'].apply(nltk.tokenize.sent_tokenize)
+
+    comments['sentences'] = comments['sentences'].apply(
+        lambda x: [s for s in x if word in [w.lower() for w in nltk.tokenize.word_tokenize(s)]])
+
+    comments = comments.loc[comments['sentences'].apply(lambda x: bool(len(x)))]
+
+    comments['extracted'] = comments['sentences'].apply(lambda x: ' [...] '.join(x))
+
+    comments.drop(columns='sentences', inplace=True)
+
+    # TODO search also for replaced
+    _replaced = [f for f, r in find_replace if r == word]
+
+    return comments.assign(origin=origin, word=word)

@@ -44,9 +44,7 @@ def get_service():
     return build('sheets', 'v4', credentials=get_creds())
 
 
-def save_list_to_sheets_tab(list, tab_name, columns=None):
-    PETITIONS_SPREADSHEET_ID = os.environ.get('PETITION_SPREADSHEET_ID')
-
+def save_list_to_sheets_tab(list, tab_name, columns=None, spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID')):
     service = get_service()
 
     df = pandas.DataFrame(list)
@@ -57,15 +55,15 @@ def save_list_to_sheets_tab(list, tab_name, columns=None):
     # with open('./petition-example.json', 'w') as outfile:
     #     json.dump(data['items'][0], outfile, indent=4)
 
-    service.spreadsheets().values().clear(spreadsheetId=PETITIONS_SPREADSHEET_ID,
+    service.spreadsheets().values().clear(spreadsheetId=spreadsheetId,
                                           range=f"{tab_name}!A2:ZZZ").execute()
 
-    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!1:1",
+    service.spreadsheets().values().update(spreadsheetId=spreadsheetId, range=f"{tab_name}!1:1",
                                            body={"values": [df.columns.tolist()]},
                                            valueInputOption="USER_ENTERED"
                                            ).execute()
 
-    service.spreadsheets().values().update(spreadsheetId=PETITIONS_SPREADSHEET_ID, range=f"{tab_name}!A2:ZZZ",
+    service.spreadsheets().values().update(spreadsheetId=spreadsheetId, range=f"{tab_name}!A2:ZZZ",
                                            body={"values": df.values.tolist()},
                                            valueInputOption="USER_ENTERED"
                                            ).execute()

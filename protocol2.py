@@ -13,11 +13,11 @@ from utils.google_services import save_list_to_sheets_tab
 if __name__ == '__main__':
     all_pets = petitions.get()
 
-    unmask_analyzed = comments.analyze_comments_from_petition_slugs(tags.nomask_slugs,
+    unmask_analyzed = comments.analyze_comments_from_petition_slugs(tags.get_nomask_slugs(),
                                                                     topic_name='unmask',
                                                                     petitions_limit=100)
     promask_analyzed = comments.analyze_comments_from_petition_slugs(
-        tags.promask_slugs,
+        tags.get_promask_slugs(),
         topic_name='promask', petitions_limit=100)
 
     unmask_analyzed_total = unmask_analyzed['count'].sum()
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     merged.drop(columns=['source_promask', 'source_nomask'], inplace=True)
     merged.sort_values(by=['percentage_both'], ascending=False, inplace=True)
 
-    utils.google_services.save_list_to_sheets_tab(merged, 'scatternonsopiu')
+    utils.google_services.save_list_to_sheets_tab(merged, 'scatter')
 
     scatter = scatter.assign(summed_percentage=lambda x: x['percentage_nomask'] + x['percentage_promask'])
     scatter.sort_values(by='summed_percentage', inplace=True, ascending=False)
