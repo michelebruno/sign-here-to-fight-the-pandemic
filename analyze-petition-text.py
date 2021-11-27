@@ -20,7 +20,7 @@ promask_tagnames = ['alberta', 'toronto', 'ontario british columbia', 'vancouver
 
 slugs = change.slugs_from_normalized_tag(promask_tagnames)
 
-all_pets = change.get_all_petitions()
+all_pets = change.get()
 
 pets = all_pets.loc[all_pets['country'] == 'IT']
 

@@ -1,7 +1,6 @@
 import os.path
 
-from utils.change import count_not_normalized_tags, from_petitions_get_list_of_tags, \
-    get_all_petitions, filter_only_for_chosen_countries, normalize_tag
+from change import petitions, tags
 import pandas
 from dotenv import load_dotenv
 
@@ -25,7 +24,7 @@ if __name__ == '__main__':
     # save_list_to_sheets_tab(all_tags, 'tantissimitags')
 
     # all_petitions.drop_duplicates('id', inplace=True)
-    filtered_by_country = filter_only_for_chosen_countries(get_all_petitions())
+    filtered_by_country = petitions.filter_only_for_chosen_countries(petitions.get())
 
     for country, pets in filtered_by_country.groupby('country'):
         country_tags = chosen_tags.loc[chosen_tags['country'] == country]
@@ -33,7 +32,7 @@ if __name__ == '__main__':
         country_tags = country_tags.sort_values(by='total_count', ascending=False)
 
         edges = pandas.DataFrame(
-            from_petitions_get_list_of_tags(pets, normalized=True, ),
+            tags.from_petitions_get_list_of_tags(pets, normalized=True, ),
             columns=['source', 'target'])
 
         edges = edges.loc[edges['target'].isin(country_tags['normalized'].head(75))]

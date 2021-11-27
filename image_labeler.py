@@ -1,17 +1,15 @@
 import io
-import pprint
 
 import pandas
 from tqdm import tqdm
 import proto
-from google.protobuf.json_format import MessageToJson
 
 import json
 import os
 from dotenv import load_dotenv
 from google.cloud import vision
 
-import utils.change
+from change import petitions
 
 load_dotenv()
 client = vision.ImageAnnotatorClient()
@@ -94,9 +92,9 @@ def annotate_images_from_petitions(petitions: pandas.DataFrame, filename='annota
 
 
 if __name__ == '__main__':
-    all_pets = utils.change.get_all_petitions()
+    all_pets = petitions.get()
 
-    chosen_country = utils.change.filter_only_for_chosen_countries(all_pets)
+    chosen_country = petitions.filter_only_for_chosen_countries(all_pets)
 
     for country, pets in chosen_country.groupby(by='country'):
         if country == 'US':

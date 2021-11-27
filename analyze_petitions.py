@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from google.cloud import language_v1 as language
 import csv
 import google.api_core.exceptions
-import utils.change as change
+from change import tags, petitions,comments
 import utils.google_services
 
 load_dotenv()
@@ -18,9 +18,9 @@ analysis_client = language.LanguageServiceClient()
 
 promask_tagnames = ['alberta', 'toronto', 'ontario british columbia', 'vancouver', 'québec']
 
-slugs = change.slugs_from_normalized_tag(promask_tagnames)
+slugs = tags.slugs_from_normalized_tag(promask_tagnames)
 
-all_pets = change.get_all_petitions()
+all_pets = petitions.get()
 
 pets = all_pets.loc[all_pets['country'] == 'CA']
 
