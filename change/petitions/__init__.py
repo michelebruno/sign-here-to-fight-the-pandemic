@@ -12,6 +12,7 @@ from .. import tags
 from change.tags import has_tag_been_normalized, normalize_tag
 from utils.http import http
 import utils.google_services
+
 service = utils.google_services.get_service()
 
 
@@ -181,10 +182,11 @@ def filter(pets=get(), slugs=None, country=None, limit=None, sort_by='total_sign
     filtered_pets = pets
 
     if slugs:
-        filtered_pets = pets.loc[pets['tag_slugs'].map(lambda x: True if set(x).intersection(slugs) else False)]
+        filtered_pets = filtered_pets.loc[
+            filtered_pets['tag_slugs'].map(lambda x: True if set(x).intersection(slugs) else False)]
 
     if country is not None:
-        filtered_pets = pets.loc[pets['country'] == 'US']
+        filtered_pets = filtered_pets.loc[pets['country'] == 'US']
 
     if sort_by:
         filtered_pets = filtered_pets.sort_values(by=sort_by, ascending=False)
@@ -196,11 +198,11 @@ def filter(pets=get(), slugs=None, country=None, limit=None, sort_by='total_sign
 
 
 def get_promask_petitions(limit=None):
-    return filter(slugs=tags.promask_slugs, country='US', sort_by='total_signature_count', limit=limit)
+    return filter(slugs=tags.get_promask_slugs(), country='US', sort_by='total_signature_count', limit=limit)
 
 
 def get_noomask_petitions(limit=None):
-    return filter(slugs=tags.nomask_slugs, country='US', sort_by='total_signature_count', limit=limit)
+    return filter(slugs=tags.get_nomask_slugs(), country='US', sort_by='total_signature_count', limit=limit)
 
 
 def flatten_petitions(

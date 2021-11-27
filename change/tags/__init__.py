@@ -168,5 +168,23 @@ def from_petitions_get_list_of_tags(petitions, normalized: bool = True, only_nor
 nomask_tagnames = ['unmasking', 'mask choice', 'unmask our kids']
 promask_tagnames = ['mask in school', 'mask mandate', 'mask to fight covid-19', 'make mask mandatory']
 
-promask_slugs = set(slugs_from_normalized_tag(promask_tagnames))
-nomask_slugs = set(slugs_from_normalized_tag(nomask_tagnames))
+_promask_slugs = None
+_nomask_slugs = None
+
+
+def get_promask_slugs():
+    global _promask_slugs
+
+    if _promask_slugs is None:
+        _promask_slugs = set(slugs_from_normalized_tag(promask_tagnames))
+
+    return _promask_slugs
+
+
+def get_nomask_slugs():
+    global _nomask_slugs
+
+    if _nomask_slugs is None:
+        _nomask_slugs = set(slugs_from_normalized_tag(nomask_tagnames))
+
+    return _nomask_slugs
