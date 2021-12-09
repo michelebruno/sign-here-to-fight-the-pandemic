@@ -197,8 +197,22 @@ def filter(pets=get(), slugs=None, country=None, limit=None, sort_by='total_sign
     return filtered_pets
 
 
+nomasks_in_promasks = [
+    '23509752',
+    '30269113',
+    '23590525',
+    '30334437',
+    '28616378',
+    '28932039',
+    '28598724',
+    '30324936',
+]
+
+
 def get_promask_petitions(limit=None):
-    return filter(slugs=tags.get_promask_slugs(), country='US', sort_by='total_signature_count', limit=limit)
+    pets = filter(slugs=tags.get_promask_slugs(), country='US', sort_by='total_signature_count', limit=limit)
+
+    return pets.loc[~pets['id'].isin(nomasks_in_promasks)]
 
 
 def get_nomask_petitions(limit=None):
