@@ -16,6 +16,7 @@ nomask_comments = comments.from_petitions(petitions.get_nomask_petitions(100)['i
 promask_comments['sentences'] = promask_comments['comment'].apply(nltk.tokenize.sent_tokenize)
 nomask_comments['sentences'] = nomask_comments['comment'].apply(nltk.tokenize.sent_tokenize)
 
+
 scatter = get_service().spreadsheets().values().get(
     spreadsheetId=os.environ.get('PETITION_SPREADSHEET_ID'), range='scatter!A2:H').execute().get('values', [])
 
