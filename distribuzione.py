@@ -107,7 +107,7 @@ for entity in entities:
     nomask_wordcount = promask_list_entity['comment'].value_counts().to_frame().reset_index().rename(
         columns={"index": "word", "comment": "count"})
 
-    print(promask_wordcount)
+    #print(promask_wordcount)
 
     # DEBUG this is done to avoid the "unhashable type: list" error, non sono sicuro sia questa la soluzione ma intanto è qui
     # promask_this_entity['comment'] = promask_this_entity['comment'].apply(
@@ -129,6 +129,7 @@ for entity in entities:
 
 
     for second_entity in entities:
+        print(entity, second_entity)
         # pro = promask_this_entity.loc[promask_this_entity['comment'].str.contains(second_entity, case=False)]
         # no = nomask_this_entity.loc[nomask_this_entity['comment'].str.contains(second_entity, case=False)]
 
@@ -149,9 +150,9 @@ for entity in entities:
                           promask_percentage, (promask_percentage + nomask_percentage) / 2, delta_promask,
                           1 - delta_promask])
 
-# save_list_to_sheets_tab(
-#     pandas.DataFrame(save_this,
-#                      columns=['word', 'second_word', 'nomask', 'promask', 'nomask_%', 'promaks_%', 'summed_percentage',
-#                               'promask_delta', 'nomask_delta'], ),
-#     'distribuzione',
-#     spreadsheetId='1kacMntgtJC2w9iuCbCACkojX5LdpLzsceR6Sw9hcVHI')
+save_list_to_sheets_tab(
+    pandas.DataFrame(save_this,
+                     columns=['word', 'second_word', 'nomask', 'promask', 'nomask_%', 'promaks_%', 'summed_percentage',
+                              'promask_delta', 'nomask_delta'], ),
+    'distribuzione_v2',
+    spreadsheetId='1kacMntgtJC2w9iuCbCACkojX5LdpLzsceR6Sw9hcVHI')
