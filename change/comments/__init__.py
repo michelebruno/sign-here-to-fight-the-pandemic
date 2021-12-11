@@ -124,7 +124,7 @@ find_replace = [
     ('masks', 'mask'),
     ('measures', 'measure'),
     ('numbers', 'number'),
-    ('opinions', 'opinion',),
+    ('opinions', 'opinion'),
     ('option', 'options'),
     ('parent', 'parents'),
     ('physicians', 'physician'),

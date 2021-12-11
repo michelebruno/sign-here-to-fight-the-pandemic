@@ -24,37 +24,82 @@ limit = 35
 
 entities = entities[:limit]
 
+#Aggiunto parole usate solo da uno dei due gruppi su gentile richiesta della Dott.ssa Roncalli in data 11 Dicembre 2021
+entities_addendum = ["god", "faces", "america", "studies", "bacteria", "metal health", "development", "oxygen", "viruses", "anxiety", "issues", "effects", "headaches", "flu", "abuse"
+"texas", "public", "variant", "economy", "businesses", "common sense", "distancing", "hospitals", "guidelines", "texans", "customers", "employees", "delta", "precaution", "physician"]
+entities.extend(entities_addendum)
+
+print(entities)
+
 save_this = []
 
 
 # pandas.set_option('display.max_columns', None)
-
-def remove_punctuation(df):
-    df['comment'] = df['comment'].apply(
-        lambda comment: re.sub("[^-9A-Za-z ]", "", str(comment)))
-    return df
-
-def normalize_case(df):
-    df['comment'] = df['comment'].apply(
-        lambda comment: "".join([i.lower() for i in comment if i not in string.punctuation]))
-    return df
-
-def remove_stopwords(df):
-    df['comment'] = df['comment'].apply(
-        lambda comment: [i for i in comment if i not in stopwords])
-    return df
-
-def lemmatize_words(df):
-    df['comment'] = df['comment'].apply(
-        lambda comment: [lemmatizer.lemmatize(i) for i in comment])
-    return df
-
+find_replace = [
+    ('mask', 'masks'),
+    ('americans', 'american'),
+    ('benefits', 'benefit'),
+    ('bodies', 'body'),
+    ('buildings', 'building'),
+    ('chances', 'chance'),
+    ('child', 'children'),
+    ('choices', 'choice'),
+    ('classroom', 'classrooms'),
+    ('concerns', 'concern'),
+    ('covid-19', 'covid19'),
+    ('decisions', 'decision'),
+    ('diseases', 'disease'),
+    ('districts', 'district'),
+    ('doctors', 'doctor'),
+    ('doctors', 'doctor'),
+    ('efforts', 'effort'),
+    ('face mask', 'face masks'),
+    ('families', 'family'),
+    ('freedoms', 'freedom'),
+    ('granddaughters', 'granddaughter'),
+    ('grandparents', 'grandparent'),
+    ('health issue', 'health issues'),
+    ('healthcare worker', 'healthcare workers'),
+    ('hospital', 'hospitals'),
+    ('human beings', 'human beings'),
+    ('individuals', 'individual'),
+    ('infection', 'infections'),
+    ('kid', 'kids'),
+    ('leaders', 'leader'),
+    ('loved one', 'loved ones'),
+    ('mandates', 'mandate'),
+    ('mask mandates', 'mask mandate'),
+    ('masks', 'mask'),
+    ('measures', 'measure'),
+    ('numbers', 'number'),
+    ('opinions', 'opinion'),
+    ('option', 'options'),
+    ('parent', 'parents'),
+    ('physicians', 'physician'),
+    ('precautions', 'precaution'),
+    ('quarantines', 'quarantine'),
+    ('reason', 'reasons'),
+    ('reasons', 'reason'),
+    ('recommendations', 'recommendation'),
+    ('residents', 'resident'),
+    ('results', 'result'),
+    ('right', 'rights'),
+    ('schools', 'school'),
+    ('scientists', 'scientist'),
+    ('students', 'student'),
+    ('systems', 'system'),
+    ('teachers', 'teacher'),
+    ('vaccines', 'vaccine'),
+    ('variants', 'variant'),
+]
 
 for entity in entities:
 
     # import the commenti
     promask_this_entity = promask_comments.loc[promask_comments['comment'].str.contains(entity, case=False)]
     nomask_this_entity = nomask_comments.loc[nomask_comments['comment'].str.contains(entity, case=False)]
+
+
 
     # remove punctuation
     promask_this_entity['comment'] = promask_this_entity['comment'].apply(
@@ -80,31 +125,37 @@ for entity in entities:
         lambda comment: [i for i in comment if i not in stopwords])
 
     #lemmatize words to remove semi-duplicates like "mask" <-> "masks"
-    lemmatizer = WordNetLemmatizer()
+    #lemmatizer = WordNetLemmatizer()
 
-    promask_this_entity['comment'] = promask_this_entity['comment'].apply(
-        lambda comment: [lemmatizer.lemmatize(i) for i in comment])
-    nomask_this_entity['comment'] = promask_this_entity['comment'].apply(
-        lambda comment: [lemmatizer.lemmatize(i) for i in comment])
+    #promask_this_entity['comment'] = promask_this_entity['comment'].apply(
+    #    lambda comment: [lemmatizer.lemmatize(i) for i in comment])
+    #nomask_this_entity['comment'] = nomask_this_entity['comment'].apply(
+    #    lambda comment: [lemmatizer.lemmatize(i) for i in comment])
 
     # flatten column of lists to column e basta
     promask_list_entity = promask_this_entity.explode('comment')
-    nomask_list_entity = promask_this_entity.explode('comment')
+    nomask_list_entity = nomask_this_entity.explode('comment')
 
     # this is done because .explode() duplicates indexes
     promask_list_entity = promask_list_entity.reset_index(drop=True)
-    nomask_list_entity = promask_list_entity.reset_index(drop=True)
+    nomask_list_entity = nomask_list_entity.reset_index(drop=True)
 
     # this is needed because .value_counts() does not hash lists
-    promask_this_entity['comment'] = promask_this_entity['comment'].apply(
+    promask_list_entity['comment'] = promask_list_entity['comment'].apply(
         lambda comment: str(comment))
-    nomask_this_entity['comment'] = promask_this_entity['comment'].apply(
+    nomask_list_entity['comment'] = nomask_list_entity['comment'].apply(
         lambda comment: str(comment))
+
+    for (find, replace) in find_replace:
+        promask_list_entity.replace(to_replace=find, value=replace, inplace=True)
+        nomask_list_entity.replace(to_replace=find, value=replace, inplace=True)
+
+    print(promask_list_entity['comment'])
 
     # count how many times a word appears
     promask_wordcount = promask_list_entity['comment'].value_counts().to_frame().reset_index().rename(
         columns={"index": "word", "comment": "count"})
-    nomask_wordcount = promask_list_entity['comment'].value_counts().to_frame().reset_index().rename(
+    nomask_wordcount = nomask_list_entity['comment'].value_counts().to_frame().reset_index().rename(
         columns={"index": "word", "comment": "count"})
 
     #print(promask_wordcount)
@@ -129,16 +180,26 @@ for entity in entities:
 
 
     for second_entity in entities:
-        print(entity, second_entity)
+        #print(entity, second_entity)
         # pro = promask_this_entity.loc[promask_this_entity['comment'].str.contains(second_entity, case=False)]
         # no = nomask_this_entity.loc[nomask_this_entity['comment'].str.contains(second_entity, case=False)]
 
         # promask_percentage = pro.shape[0] / promask_this_entity.shape[0]
         # nomask_percentage = no.shape[0] / nomask_this_entity.shape[0]
+        #print(promask_wordcount)
 
-        promask_word = promask_wordcount.loc[promask_wordcount['word'] == second_entity]['count']
+        try:
+            promask_word = promask_wordcount.loc[promask_wordcount['word'] == second_entity]['count'].values[0]
+        except IndexError:
+            promask_word = 0
+
+
+        try:
+            nomask_word = nomask_wordcount.loc[nomask_wordcount['word'] == second_entity]['count'].values[0]
+        except IndexError:
+            nomask_word = 0
+
         promask_tot = promask_wordcount['count'].sum()
-        nomask_word = nomask_wordcount.loc[nomask_wordcount['word'] == second_entity]['count']
         nomask_tot = nomask_wordcount['count'].sum()
 
         promask_percentage = promask_word / promask_tot
