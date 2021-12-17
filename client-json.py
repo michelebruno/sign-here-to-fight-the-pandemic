@@ -1,22 +1,18 @@
 import os
 import re
+from datetime import datetime
 
 import nltk
 import pandas
-from tqdm import tqdm
 
 from change import petitions, tags, comments
 
-from utils.google_services import save_list_to_sheets_tab, get_service
+from utils.google_services import get_service
+
+homeCommentsId = [812047727, 811710031, 814486694, 822518213, 817756846, 821382262]
 
 save_these_ones = pandas.DataFrame(
-    columns=['word', 'origin', 'extracted', 'comment', 'likes', 'petition',
-             'author'])
-
-nomask_comments = comments.from_petitions(petitions.get_nomask_petitions(100)['id'].to_list()).sample(
-    frac=1).reset_index(drop=True).head(4500).assign(origin='nomask')
-promask_comments = comments.from_petitions(petitions.get_promask_petitions(100)['id'].to_list()).sample(
-    frac=1).reset_index(drop=True).head(nomask_comments.shape[0]).assign(origin='promask')
+    columns=['word', 'origin', 'extracted', 'comment', 'likes', 'petition', 'author'])
 
 scatter = get_service().spreadsheets().values().get(
     spreadsheetId='1kacMntgtJC2w9iuCbCACkojX5LdpLzsceR6Sw9hcVHI', range='scatter!A:L').execute().get('values', [])
@@ -29,6 +25,10 @@ words = entities['name'].to_list()
 
 allWordsRegex = re.compile(fr"\b({'|'.join(words)})\b")
 
+nomask_comments = comments.from_petitions(petitions.get_nomask_petitions(100)['id'].to_list()).assign(origin='nomask')
+promask_comments = comments.from_petitions(petitions.get_promask_petitions(100)['id'].to_list()).assign(
+    origin='promask')
+
 promask_comments['sentences'] = promask_comments['comment'] \
     .apply(nltk.tokenize.sent_tokenize) \
     .map(lambda ss: [allWordsRegex.split(s) for s in ss])
@@ -38,47 +38,37 @@ nomask_comments['sentences'] = nomask_comments['comment'] \
     .map(lambda ss: [allWordsRegex.split(s) for s in ss])
 
 
-def flatten_list(_2d_list):
-    flat_list = []
-    # Iterate through the outer list
-    for element in _2d_list:
-        if type(element) is list:
-            # If the element is of type list, iterate through the sublist
-            for item in element:
-                flat_list.append(item)
-        else:
-            flat_list.append(element)
-    return flat_list
+def parse(_df: pandas.DataFrame):
+    '''
 
+    :param _df:
+    :return:
+    :rtype: pandas.DataFrame
+    '''
+    df = _df.copy()
+    df.created_at = df.created_at.map(lambda d: datetime.strftime(d, "%Y-%m-%d"))
 
-def filter_for_json(comms: pandas.DataFrame, word: str):
-    filtered = comms.copy()
+    df.user = df.user.map(lambda u: u['id'])
 
-    filtered.sentences = filtered.sentences.map(lambda ss: [s for s in ss if word in s])
-
-    filtered = filtered.loc[filtered.sentences.map(bool)]
-
-    return filtered
-
-
-allComments = pandas.DataFrame()
-
-for word in words:
-    comments = pandas.concat([
-        filter_for_json(promask_comments, word),
-        filter_for_json(nomask_comments, word)
-    ])
-    comments.user = comments.user.map(lambda u: u['id'])
-
-    comments.insert(1, 'petition', comments.commentable_entity.map(
+    df.insert(1, 'petition', df.commentable_entity.map(
         lambda p: dict({'title': p['title'], 'slug': p['slug'], 'created_at': p['created_at']})))
+    return df[["origin", "id", "comment", "petition", "user", "sentences", "created_at", "showInHome"]]
 
-    comments.rename(columns={'comment_id': 'id'}, inplace=True)
 
-    comments = comments.assign(word=word)
+homeComments = pandas.concat([nomask_comments, promask_comments], ignore_index=True)
 
-    allComments = pandas.concat([allComments, comments], ignore_index=True)
+homeComments = homeComments.loc[homeComments.id.isin(homeCommentsId)]
 
-allComments = allComments[["origin", "id", "comment", "petition", "user", "sentences"]]
+homeComments = homeComments.assign(showInHome=True)
+
+allComments = parse(pandas.concat([
+    homeComments,
+    nomask_comments,
+    promask_comments.sample(frac=1).reset_index(drop=True).head(nomask_comments.shape[0])
+], ignore_index=True))
+
+allComments = allComments.drop_duplicates(subset=['id'])
+
+allComments.rename(columns={'id': 'commentId', 'created_at': 'createdAt'}, inplace=True)
 
 allComments.to_json(os.path.join('..', 'dd-phase03', 'src', 'data', 'comments.json'), orient='records')
