@@ -77,6 +77,8 @@ def flatten(comments: pandas.DataFrame):
             lambda y: f"https://www.change.org/p/{y['slug']}"),
         petition_slug=lambda x: x['commentable_entity'].map(
             lambda y: y['slug']),
+        petition_title=lambda x: x['commentable_entity'].map(
+            lambda y: y['slug']),
         author=lambda x: x['user'].map(
             lambda y: y['display_name'])
     )
